@@ -1,70 +1,116 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
-using System.Linq;
+using Xunit.Abstractions;
 
-namespace Microsoft.DotNet.Docker.Tests
+namespace Microsoft.DotNet.Docker.Tests;
+
+public static class FileHelper
 {
-    public static class FileHelper
+    public static TempFolderContext UseTempFolder() => new TempFolderContext();
+
+    public static TempFileContext UseTempFile(string name = null) => new TempFileContext(name);
+
+    /// <summary>
+    /// Returns a value indicating whether the two files are equal.
+    /// </summary>
+    public static bool CompareFiles(string expectedFilePath, string actualFilePath, ITestOutputHelper outputHelper)
     {
-        public static TempFolderContext UseTempFolder()
+        if (!File.Exists(expectedFilePath))
         {
-            return new TempFolderContext();
+            throw new FileNotFoundException($"Expected file not found: {expectedFilePath}");
         }
 
-        /// <summary>
-        /// Returns a value indicating whether the two lists are equivalent (order does not matter).
-        /// </summary>
-        public static bool CompareLists(IList<string> expectedItems, IList<string> items)
+        if (!File.Exists(actualFilePath))
         {
-            if (items.Count != expectedItems.Count)
-            {
-                return false;
-            }
-
-            items = items
-                .OrderBy(p => p)
-                .ToList();
-            expectedItems = expectedItems
-                .OrderBy(p => p)
-                .ToList();
-
-            for (int i = 0; i < items.Count; i++)
-            {
-                if (items[i] != expectedItems[i])
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            throw new FileNotFoundException($"Actual file not found: {actualFilePath}");
         }
+
+        string diffOutput = DiffFiles(expectedFilePath, actualFilePath, outputHelper);
+
+        if (!string.IsNullOrEmpty(diffOutput))
+        {
+            return false;
+        }
+
+        return true;
     }
 
-    public class TempFolderContext : IDisposable
+    /// <summary>
+    /// Runs a git diff of two files and returns the output.
+    /// </summary>
+    public static string DiffFiles(string file1Path, string file2Path, ITestOutputHelper outputHelper)
     {
-        public TempFolderContext()
-        {
-            do
-            {
-                Path = System.IO.Path.Combine(
-                    System.IO.Path.GetTempPath(),
-                    Guid.NewGuid().ToString());
-            }
-            while (Directory.Exists(Path));
+        (Process Process, string StdOut, string StdErr) diffResult =
+            ExecuteHelper.ExecuteProcess("git", $"diff --no-index {file1Path} {file2Path}", outputHelper);
 
-            Directory.CreateDirectory(Path);
+        return diffResult.StdOut;
+    }
+}
+
+public sealed class TempFolderContext : IDisposable
+{
+    public TempFolderContext()
+    {
+        do
+        {
+            Path = System.IO.Path.Combine(
+                System.IO.Path.GetTempPath(),
+                Guid.NewGuid().ToString());
+        }
+        while (Directory.Exists(Path));
+
+        Directory.CreateDirectory(Path);
+    }
+
+    public string Path { get; }
+
+    public void Dispose() => Directory.Delete(Path, true);
+}
+
+public sealed class TempFileContext : IDisposable
+{
+    private readonly string _folder;
+
+    public TempFileContext(string name = null)
+    {
+        string folder;
+        do
+        {
+            folder = System.IO.Path.Combine(
+                System.IO.Path.GetTempPath(),
+                Guid.NewGuid().ToString());
+        }
+        while (Directory.Exists(folder));
+
+        if (name is not null)
+        {
+            _folder = folder;
+            Directory.CreateDirectory(folder);
+            Path = System.IO.Path.Combine(folder, name);
+        }
+        else
+        {
+            Path = folder;
         }
 
-        public string Path { get; }
+        File.Create(Path).Dispose();
+    }
 
-        public void Dispose()
+    public string Path { get; }
+
+    public void Dispose()
+    {
+        if (_folder is not null)
         {
-            Directory.Delete(Path, true);
+            Directory.Delete(_folder, true);
+        }
+        else
+        {
+            File.Delete(Path);
         }
     }
 }

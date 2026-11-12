@@ -1,0 +1,39 @@
+{{
+    _ ARGS:
+        include-powershell-vars (optional): Whether PowerShell will be installed in the image ^
+
+    set dotnetVersion to join(slice(split(PRODUCT_VERSION, "."), 0, 2), ".") ^
+    set buildVersion to VARIABLES[cat("sdk|", dotnetVersion, "|build-version")] ^
+    set isStableBranding to
+        find(buildVersion, "alpha") < 0
+        && find(buildVersion, "preview") < 0
+        && find(buildVersion, "rc.") < 0 ^
+
+    set useFinalVersion to VARIABLES[cat("sdk|", dotnetVersion, "|use-final-version")] = "true" ^
+    set sdkVersion to when(isStableBranding,
+        VARIABLES[cat("sdk|", dotnetVersion, "|product-version")],
+        when(useFinalVersion,
+            cat(VARIABLES[cat("sdk|", dotnetVersion, "|product-version")], ".final"),
+            VARIABLES[cat("sdk|", dotnetVersion, "|build-version")])) ^
+    set isAlpine to find(OS_VERSION, "alpine") >= 0 ^
+    set isWindows to find(OS_VERSION, "nanoserver") >= 0 || find(OS_VERSION, "windowsservercore") >= 0 ^
+    set lineContinuation to when(isWindows, "`", "\")
+}}ENV {{lineContinuation}}
+    # Do not generate certificate
+    DOTNET_GENERATE_ASPNET_CERTIFICATE=false {{lineContinuation}}
+    # Do not show first run text
+    DOTNET_NOLOGO=true {{lineContinuation}}{{if isWindows:
+    # Use a shared base for private, user-only VSTest artifacts directories
+    VSTEST_ARTIFACTS_BASE_DIRECTORY=C:\Windows\Temp {{lineContinuation}}}}
+    # SDK version
+    DOTNET_SDK_VERSION={{sdkVersion}} {{lineContinuation}}{{if isAlpine:
+    # Disable the invariant mode (set in base image)
+    DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false {{lineContinuation}}}}
+    # Enable correct mode for dotnet watch (only mode supported in a container)
+    DOTNET_USE_POLLING_FILE_WATCHER=true {{lineContinuation}}{{if !isWindows:
+    # Use /tmp for private VSTest artifacts directories in containers
+    VSTEST_ARTIFACTS_BASE_DIRECTORY=/tmp {{lineContinuation}}}}
+    # Skip extraction of XML docs - generally not useful within an image/container - helps performance
+    NUGET_XMLDOC_MODE=skip {{if ARGS["include-powershell-vars"]:{{lineContinuation}}
+    # PowerShell telemetry for docker image usage
+    POWERSHELL_DISTRIBUTION_CHANNEL=PSDocker-DotnetSDK-{{OS_ARCH_HYPHENATED}}}}

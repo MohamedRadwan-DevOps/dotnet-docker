@@ -1,10 +1,56 @@
 trigger: none
 pr: none
 
-variables:
-- template: variables/core.yml
+parameters:
+- name: sourceBuildPipelineRunId
+  displayName: >
+    Source build pipeline run ID. This refers to runs of *this pipeline*.
+    Override this parameter in combination with disabling the `Build` stage to
+    test or publish images that were built in a different pipeline run. When
+    building new images, leave this value alone.
+  type: string
+  default: $(Build.BuildId)
 
-stages:
-- template: ../common/templates/stages/build-test-publish-repo.yml
+- name: noCache
+  displayName: >
+    Run build with no cache. When this is unchecked, the build will use the
+    info in the dotnet/versions repo to build only the images which have had
+    Dockerfile changes or base images updates. When this is checked, all images
+    will be built regardless of caching status.
+  type: boolean
+  default: false
+
+variables:
+- template: /eng/pipelines/variables/core-official.yml@self
+
+resources:
+  repositories:
+  - repository: VersionsRepo
+    type: github
+    endpoint: dotnet
+    name: dotnet/versions
+    ref: ${{ variables['gitHubVersionsRepoInfo.branch'] }}
+
+extends:
+  template: /eng/docker-tools/templates/1es.yml@self
   parameters:
-    testMatrixCustomBuildLegGroupArgs: --custom-build-leg-group test-dependencies
+    # Temporarily use only Permissive because CFSClean blocks Ubuntu/Debian package feeds.
+    # Tracking issue: https://github.com/dotnet/dotnet-docker-internal/issues/11529
+    networkIsolationPolicy: Permissive
+    reposToExcludeFromScanning:
+    - VersionsRepo
+    stages:
+    - template: /eng/docker-tools/templates/stages/dotnet/publish-config-prod.yml@self
+      parameters:
+        enableSigning: true
+        sourceBuildPipelineRunId: ${{ parameters.sourceBuildPipelineRunId }}
+        stagesTemplate: /eng/pipelines/stages/build-test-publish-repo.yml@self
+        stagesTemplateParameters:
+          versionsRepoRef: VersionsRepo
+          sourceBuildPipelineRunId: ${{ parameters.sourceBuildPipelineRunId }}
+          poolPriority: High
+          noCache: ${{ parameters.noCache }}
+          additionalServiceConnections:
+          - name: $(kusto.serviceConnectionName)
+          - name: $(marStatus.serviceConnectionName)
+          - name: DotnetContainersGitHubBot

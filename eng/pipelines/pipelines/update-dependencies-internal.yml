@@ -1,0 +1,66 @@
+parameters:
+# Comma-delimited list of stage container names (e.g., "stage-1234567,stage-2345678")
+# to fetch updates from. This can be from the real staging pipeline or the staging
+# test pipeline, but the stagingStorageAccount parameter must match which pipeline
+# is used here.
+- name: stageContainers
+  type: string
+  default: ""
+# Staging storage account for .NET release artifacts
+- name: stagingStorageAccount
+  type: string
+  default: ""
+# A pull request will be created targeting this branch.
+- name: targetBranch
+  type: string
+  default: ""
+# Service connection details to use for git operations. This must represent a
+# managed identity user that has "contributor" access to the target branch.
+- name: gitServiceConnectionName
+  type: string
+  default: ""
+
+- name: poolPriority
+  type: string
+  default: ""
+
+extends:
+  template: /eng/docker-tools/templates/1es.yml@self
+  parameters:
+    stages:
+    - stage: UpdateDepsStage
+      displayName: Update dotnet
+
+      jobs:
+      - template: /eng/pipelines/jobs/update-dependency.yml@self
+        parameters:
+          dependencyName: dotnet
+          poolPriority: ${{ parameters.poolPriority }}
+          updateSteps:
+          - ${{ if eq(parameters.stageContainers, '') }}:
+            - "stageContainers parameter must not be empty.": error
+          - task: AzureCLI@2
+            displayName: Update .NET
+            continueOnError: False
+            condition: and(succeeded(), true)
+            inputs:
+              azureSubscription: "${{ parameters.gitServiceConnectionName }}"
+              scriptType: "pscore"
+              scriptLocation: "inlineScript"
+              inlineScript: >-
+                dotnet run --project eng/update-dependencies/update-dependencies.csproj --
+                dotnet staging-pipeline
+                "${{ parameters.stageContainers }}"
+                --submit-pr
+                --internal
+                --staging-storage-account ${{ parameters.stagingStorageAccount }}
+                --target-branch "${{ parameters.targetBranch }}"
+            env:
+              UpdateDependencies__PullRequestDestination: AzureDevOps
+              UpdateDependencies__AzureDevOps__Organization: $(System.CollectionUri)
+              UpdateDependencies__AzureDevOps__Project: $(System.TeamProject)
+              UpdateDependencies__AzureDevOps__Repository: $(Build.Repository.Name)
+              UpdateDependencies__User: $(dotnetDockerBot.userName)
+              UpdateDependencies__Email: $(dotnetDockerBot.email)
+              # Used to download build artifacts from .NET release staging pipeline
+              SYSTEM_ACCESSTOKEN: $(System.AccessToken)

@@ -1,0 +1,43 @@
+{{
+    set dotnetVersion to join(slice(split(PRODUCT_VERSION, "."), 0, 2), ".") ^
+
+    set isServerCore to find(OS_VERSION, "windowsservercore") >= 0 ^
+
+    set baseUrl to VARIABLES[cat("dotnet|", dotnetVersion, "|base-url|", VARIABLES["branch"])] ^
+    set isInternal to find(baseUrl, "dotnetstage") >= 0 ^
+
+    set installerStageRepo to cat("mcr.microsoft.com/windows/", "servercore") ^
+    set runtimeStageRepo to cat("mcr.microsoft.com/windows/", when(isServerCore, "servercore", "nanoserver")) ^
+
+    set fromImageTag to cat(OS_VERSION_NUMBER, "-amd64") ^
+
+    set installerStageFromImage to cat(installerStageRepo, ":", fromImageTag) ^
+    set runtimeStageFromImage to cat(runtimeStageRepo, ":", fromImageTag)
+
+}}# escape=`
+
+# Installer image
+FROM {{installerStageFromImage}} AS installer
+{{if isInternal:
+ARG ACCESSTOKEN
+}}
+# Retrieve .NET Runtime
+RUN powershell -Command `
+        $ErrorActionPreference = 'Stop'; `
+        $ProgressPreference = 'SilentlyContinue'; `
+        `
+        {{InsertTemplate("../Dockerfile.download-dotnet", [
+            "product": "runtime",
+            "extract-to": "dotnet"
+        ], "        ")}}
+
+
+# Runtime image
+FROM {{runtimeStageFromImage}}
+
+{{InsertTemplate("../Dockerfile.common-dotnet-envs")}} `
+    {{InsertTemplate("Dockerfile.envs", [], "    ")}}
+
+{{InsertTemplate("../Dockerfile.windows.set-path", [ "path": "C:\Program Files\dotnet"])}}
+
+COPY --from=installer ["/dotnet", "/Program Files/dotnet"]

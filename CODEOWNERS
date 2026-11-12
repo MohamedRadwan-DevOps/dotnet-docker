@@ -1,0 +1,20 @@
+# Users referenced in this file will automatically be requested as reviewers for PRs that modify the given paths.
+# See https://help.github.com/articles/about-code-owners/
+
+*               @dotnet/dotnet-docker-reviewers
+
+monitor/        @dotnet/dotnet-docker-reviewers @wiktork
+monitor-base/   @dotnet/dotnet-docker-reviewers @wiktork
+*monitor*       @dotnet/dotnet-docker-reviewers @wiktork
+*Monitor*       @dotnet/dotnet-docker-reviewers @wiktork
+
+aspire-dashboard/   @dotnet/dotnet-docker-reviewers @joperezr
+*aspire*            @dotnet/dotnet-docker-reviewers @joperezr
+*Aspire*            @dotnet/dotnet-docker-reviewers @joperezr
+
+yarp/ @dotnet/dotnet-docker-reviewers @benjaminpetit
+*yarp* @dotnet/dotnet-docker-reviewers @benjaminpetit
+*Yarp* @dotnet/dotnet-docker-reviewers @benjaminpetit
+*YARP* @dotnet/dotnet-docker-reviewers @benjaminpetit
+*ReverseProxy* @dotnet/dotnet-docker-reviewers @benjaminpetit
+otlptestlistener/ @dotnet/dotnet-docker-reviewers @benjaminpetit

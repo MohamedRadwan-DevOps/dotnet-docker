@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dotnet-non-root
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aspnetapp
+  template:
+    metadata:
+      labels:
+        app: aspnetapp
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+      - name: aspnetapp
+        image: mcr.microsoft.com/dotnet/samples:aspnetapp-chiseled
+        ports:
+        - containerPort: 8080
+        securityContext:
+          allowPrivilegeEscalation: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dotnet-non-root
+spec:
+  type: ClusterIP
+  selector:
+    app: aspnetapp
+  ports:
+  - name: aspnetapp
+    protocol: TCP
+    port: 8080

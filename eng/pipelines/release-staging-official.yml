@@ -1,0 +1,66 @@
+# This pipeline takes the current branch and builds and tests the images,
+# but does not publish them.
+#
+# The images can later be published by running the release-promotion pipeline.
+
+trigger:
+  batch: true
+  branches:
+    include:
+    - internal/release/*
+pr: none
+
+parameters:
+- name: sourceBuildPipelineRunId
+  displayName: >
+    Source build pipeline run ID. This refers to runs of *this pipeline*.
+    Override this parameter in combination with disabling the `Build` stage to
+    test images that were built in a different pipeline run. When
+    building new images, leave this value alone.
+  type: string
+  default: $(Build.BuildId)
+- name: noCache
+  displayName: >
+    Disable image caching. By default, an image is built only when its
+    Dockerfile was modified or its base image has been updated. Setting this
+    parameter to true forces all images to be built (except those excluded by
+    path arguments).
+  type: boolean
+  default: true
+
+variables:
+- template: /eng/pipelines/variables/core-official.yml@self
+- name: "publicSourceBranch"
+  value: "main"
+  readonly: true
+
+resources:
+  repositories:
+  - repository: VersionsRepo
+    type: github
+    endpoint: dotnet
+    name: dotnet/versions
+    ref: ${{ variables['gitHubVersionsRepoInfo.branch'] }}
+
+extends:
+  template: /eng/docker-tools/templates/1es.yml@self
+  parameters:
+    reposToExcludeFromScanning:
+    - VersionsRepo
+    stages:
+    - template: /eng/docker-tools/templates/stages/dotnet/publish-config-prod.yml@self
+      parameters:
+        enableSigning: true
+        sourceBuildPipelineRunId: ${{ parameters.sourceBuildPipelineRunId }}
+        stagesTemplate: /eng/pipelines/stages/build-and-test.yml@self
+        stagesTemplateParameters:
+          isStandaloneBuild: true
+          poolPriority: High
+          versionsRepoRef: VersionsRepo
+          sourceBuildPipelineRunId: ${{ parameters.sourceBuildPipelineRunId }}
+          noCache: ${{ parameters.noCache }}
+          storageAccountServiceConnection:
+            name: $(dotnetstaging.serviceConnectionName)
+            id: $(dotnetstaging.serviceConnection.id)
+            tenantId: $(dotnetstaging.serviceConnection.tenantId)
+            clientId: $(dotnetstaging.serviceConnection.clientId)

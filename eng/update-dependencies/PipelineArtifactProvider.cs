@@ -1,0 +1,159 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Microsoft.DotNet.Docker.UpdateDependencies.Model.Release;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
+using Microsoft.TeamFoundation.Build.WebApi;
+
+namespace Microsoft.DotNet.Docker.UpdateDependencies;
+
+/// <summary>
+/// Represents a single file in an artifact from a pipeline run.
+/// </summary>
+/// <param name="ArtifactName">
+/// The name of the pipeline artifact that the file resides in.
+/// </param>
+/// <param name="SubPath">
+/// The sub-path of the specific file within the Artifact.
+/// </param>
+public record PipelineArtifactFile(string ArtifactName, string SubPath);
+
+public interface IPipelineArtifactProvider
+{
+    /// <summary>
+    /// Gets the .NET release config from a run of the staging pipeline.
+    /// </summary>
+    Task<ReleaseConfig> GetReleaseConfigAsync(
+        string azdoOrganization,
+        string azdoProject,
+        int stagingPipelineRunId);
+
+    /// <summary>
+    /// Tries artifact files in order and returns the first successfully downloaded text.
+    /// </summary>
+    Task<string> GetArtifactTextContentAsync(
+        string azdoOrganization,
+        string azdoProject,
+        int pipelineRunId,
+        params IEnumerable<PipelineArtifactFile> artifactsToTry);
+}
+
+internal class PipelineArtifactProvider(
+    IPipelinesService pipelinesService,
+    ILogger<PipelineArtifactProvider> logger,
+    AzdoHttpClient azdoHttpClient)
+        : IPipelineArtifactProvider
+{
+    private readonly IPipelinesService _pipelinesService = pipelinesService;
+    private readonly ILogger<PipelineArtifactProvider> _logger = logger;
+    private readonly AzdoHttpClient _azdoHttpClient = azdoHttpClient;
+
+    private static readonly IEnumerable<PipelineArtifactFile> ReleaseConfigFiles =
+    [
+        // Newest known location for release artifact data
+        new PipelineArtifactFile("manifests", "ReleaseConfig.json"),
+        // Older versions
+        new PipelineArtifactFile("metadata", "ReleaseConfig.json"),
+        new PipelineArtifactFile("drop", "config.json"),
+    ];
+
+    /// <summary>
+    /// Gets the .NET release config from a run of the staging pipeline.
+    /// </summary>
+    public async Task<ReleaseConfig> GetReleaseConfigAsync(
+        string azdoOrganization,
+        string azdoProject,
+        int stagingPipelineRunId)
+    {
+        string releaseConfigJson = await GetArtifactTextContentAsync(
+            azdoOrganization,
+            azdoProject,
+            stagingPipelineRunId,
+            ReleaseConfigFiles);
+
+        return ReleaseConfig.FromJson(releaseConfigJson);
+    }
+
+    /// <summary>
+    /// Downloads text content from a pipeline artifact file.
+    /// </summary>
+    /// <param name="azdoOrganization">
+    /// The URI of the Azure DevOps organization or collection.
+    /// For example: https://dev.azure.com/fabrikamfiber/.
+    /// </param>
+    /// <param name="azdoProject">Azure DevOps project</param>
+    /// <param name="pipelineRunId">Pipeline run ID</param>
+    /// <param name="artifactsToTry">The collection of artifact files to try, in order.</param>
+    /// <returns>The artifact content as a string.</returns>
+    public async Task<string> GetArtifactTextContentAsync(
+        string azdoOrganization,
+        string azdoProject,
+        int pipelineRunId,
+        params IEnumerable<PipelineArtifactFile> artifactsToTry)
+    {
+        if (string.IsNullOrWhiteSpace(azdoOrganization))
+        {
+            throw new ArgumentException("Azure DevOps organization is required", nameof(azdoOrganization));
+        }
+
+        if (string.IsNullOrWhiteSpace(azdoProject))
+        {
+            throw new ArgumentException("Azure DevOps project is required", nameof(azdoProject));
+        }
+
+        List<Exception> exceptions = [];
+
+        foreach (PipelineArtifactFile pipelineArtifact in artifactsToTry)
+        {
+            _logger.LogInformation(
+                "Trying to get artifact from pipeline run {PipelineRunId} using {ArtifactFile}",
+                pipelineRunId, pipelineArtifact);
+
+            try
+            {
+                // Attempt to get the artifact for the specified pipeline run
+                BuildArtifact resolvedArtifact = await _pipelinesService.GetArtifactAsync(
+                    azdoOrganization,
+                    azdoProject,
+                    pipelineRunId,
+                    pipelineArtifact.ArtifactName);
+
+                // If the artifact is found, download the specific file within it
+                string downloadUrl = resolvedArtifact.Resource.DownloadUrl;
+                downloadUrl = downloadUrl.Replace(
+                    "/content?format=zip",
+                    $"/content?format=file&subPath=%2F{pipelineArtifact.SubPath}");
+
+                _logger.LogInformation(
+                    "Downloading artifact {PipelineArtifact} from {DownloadUrl}",
+                    pipelineArtifact, downloadUrl);
+                using HttpResponseMessage response = await _azdoHttpClient.GetAsync(downloadUrl);
+                response.EnsureSuccessStatusCode();
+                string textContent = await response.Content.ReadAsStringAsync();
+                return textContent;
+            }
+            catch (Exception e)
+            {
+                // Log the exception and continue to the next artifact file
+                _logger.LogError(e, "Failed to retrieve {ArtifactFile}: {Message}", pipelineArtifact, e.Message);
+                exceptions.Add(e);
+            }
+        }
+
+        // If all attempts fail, throw an exception with the details
+        throw new AggregateException("Failed to retrieve artifact content.", exceptions);
+    }
+}
+
+internal static class PipelineArtifactProviderExtensions
+{
+    public static IServiceCollection AddPipelineArtifactProvider(this IServiceCollection services)
+    {
+        services.AddPipelinesService();
+        services.AddAzdoHttpClient();
+        services.TryAddSingleton<IPipelineArtifactProvider, PipelineArtifactProvider>();
+        return services;
+    }
+}

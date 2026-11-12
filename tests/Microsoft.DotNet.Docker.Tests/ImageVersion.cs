@@ -1,15 +1,55 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 
-namespace Microsoft.DotNet.Docker.Tests
+namespace Microsoft.DotNet.Docker.Tests;
+
+public readonly record struct ImageVersion
 {
-    public static class ImageVersion
+    private readonly Version _version;
+
+    public static readonly ImageVersion V8_0 = new(new Version(8, 0), isPreview: false);
+    public static readonly ImageVersion V8_1 = new(new Version(8, 1), isPreview: false);
+    public static readonly ImageVersion V9_0 = new(new Version(9, 0), isPreview: false);
+    public static readonly ImageVersion V9_1 = new(new Version(9, 1), isPreview: false);
+    public static readonly ImageVersion V13_2 = new(new Version(13, 2), isPreview: false);
+    public static readonly ImageVersion V13_3 = new(new Version(13, 3), isPreview: false);
+    public static readonly ImageVersion V13_4 = new(new Version(13, 4), isPreview: false);
+    public static readonly ImageVersion V13_5 = new(new Version(13, 5), isPreview: false);
+    public static readonly ImageVersion V13_6 = new(new Version(13, 6), isPreview: false);
+    public static readonly ImageVersion V9_2_Preview = new(new Version(9, 2), isPreview: true);
+    public static readonly ImageVersion V10_0 = new(new Version(10, 0), isPreview: false);
+    public static readonly ImageVersion V11_0 = new(new Version(11, 0), isPreview: false);
+
+    public ImageVersion(Version version, bool isPreview)
     {
-        public static readonly Version V2_1 = new Version(2, 1);
-        public static readonly Version V3_1 = new Version(3, 1);
-        public static readonly Version V5_0 = new Version(5, 0);
+        _version = version;
+        IsPreview = isPreview;
+    }
+
+    public int Major => _version.Major;
+
+    public bool IsPreview { get; }
+
+    public override string ToString() => _version.ToString();
+
+    public string GetTagName() => ToString() + (IsPreview ? "-preview" : string.Empty);
+
+    public static string TrimBuildVersionForRelease(string buildVersion)
+    {
+        int servicingIndex = buildVersion.IndexOf("-servicing.", StringComparison.Ordinal);
+        if (servicingIndex != -1)
+        {
+            buildVersion = buildVersion[..servicingIndex];
+        }
+
+        int rtmIndex = buildVersion.IndexOf("-rtm.", StringComparison.Ordinal);
+        if (rtmIndex != -1)
+        {
+            buildVersion = buildVersion[..rtmIndex];
+        }
+
+        return buildVersion;
     }
 }

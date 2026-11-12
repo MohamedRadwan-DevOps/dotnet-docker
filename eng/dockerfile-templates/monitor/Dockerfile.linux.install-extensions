@@ -1,0 +1,45 @@
+{{
+    set installDir to "/app" ^
+
+    set azBlobFileName to "dotnet-monitor-egress-azureblobstorage.tar.gz" ^
+    set s3FileName to "dotnet-monitor-egress-s3storage.tar.gz"
+
+}}RUN {{if (find(ARGS["monitorBaseUrl"], "dotnetstage") >= 0):--mount=type=secret,id=ACCESSTOKEN,required=true }}dotnet_monitor_extension_version={{ARGS["monitorVersion"]}} \
+    && {{InsertTemplate("../Dockerfile.linux.download-files", [
+        "files": [
+            [
+                "url": cat(ARGS["monitorBaseUrl"], "dotnet-monitor-egress-azureblobstorage-$dotnet_monitor_extension_version-linux-", ARCH_SHORT, ".tar.gz"),
+                "out-file": azBlobFileName
+            ],
+            [
+                "url": cat(ARGS["monitorBaseUrl"], "dotnet-monitor-egress-s3storage-$dotnet_monitor_extension_version-linux-", ARCH_SHORT, ".tar.gz"),
+                "out-file": s3FileName
+            ]
+        ]
+    ], "    ")}} \
+    && {{InsertTemplate("../Dockerfile.linux.validate-checksum", [
+        "file": azBlobFileName,
+        "sha": VARIABLES[join(["monitor-ext-azureblobstorage", ARGS["monitorMajorMinor"], "linux", ARCH_SHORT, "sha"], "|")],
+        "sha-var-name": "dotnet_monitor_azureblobstorage_sha512",
+        "sha-function": "512"
+    ], "    ")}} \
+    && {{InsertTemplate("../Dockerfile.linux.validate-checksum", [
+        "file": s3FileName,
+        "sha": VARIABLES[join(["monitor-ext-s3storage", ARGS["monitorMajorMinor"], "linux", ARCH_SHORT, "sha"], "|")],
+        "sha-var-name": "dotnet_monitor_s3storage_sha512",
+        "sha-function": "512"
+    ], "    ")}} \
+    && mkdir --parents {{installDir}} \
+    && {{InsertTemplate("../Dockerfile.linux.extract-file", [
+        "file": azBlobFileName,
+        "dest-dir": installDir,
+        "extract-paths": ARGS["extract-paths"]
+    ], "    ")}} \
+    && {{InsertTemplate("../Dockerfile.linux.extract-file", [
+        "file": s3FileName,
+        "dest-dir": installDir,
+        "extract-paths": ARGS["extract-paths"]
+    ], "    ")}} \
+    && rm \
+        {{azBlobFileName}} \
+        {{s3FileName}}

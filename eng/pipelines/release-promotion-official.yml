@@ -1,0 +1,52 @@
+trigger: none
+pr: none
+
+variables:
+- template: /eng/pipelines/variables/core-official.yml@self
+# Set pathArgs to empty in order to publish all images
+- name: imageBuilder.pathArgs
+  value: ""
+- name: imageBuilder.queueArgs
+  value: ""
+- template: /eng/docker-tools/templates/variables/dotnet/secrets.yml@self
+
+resources:
+  pipelines:
+  # https://dev.azure.com/dnceng/internal/_build?definitionId=1434
+  - pipeline: release-staging
+    source: dotnet-docker-release-staging-official
+  repositories:
+  - repository: VersionsRepo
+    type: github
+    endpoint: dotnet
+    name: dotnet/versions
+    ref: ${{ variables['gitHubVersionsRepoInfo.branch'] }}
+
+extends:
+  template: /eng/docker-tools/templates/1es.yml@self
+  parameters:
+    reposToExcludeFromScanning:
+    - VersionsRepo
+    stages:
+    - template: /eng/docker-tools/templates/stages/dotnet/publish-config-prod.yml@self
+      parameters:
+        sourceBuildPipelineRunId: "$(resources.pipeline.release-staging.runID)"
+        stagesTemplate: /eng/pipelines/stages/publish.yml@self
+        stagesTemplateParameters:
+          versionsRepoRef: VersionsRepo
+          poolPriority: High
+          isStandalonePublish: true
+          # Whenever staged images are published, we need to override the commit SHA since they were
+          # staged from an earlier, internal commit. We want the image info's commit URLs to point to
+          # the commit that this pipeline is running on, which should be the latest commit on the
+          # main branch.
+          overrideImageInfoCommit: true
+          sourceBuildPipelineDefinitionId: "$(resources.pipeline.release-staging.pipelineID)"
+          sourceBuildPipelineRunId: "$(resources.pipeline.release-staging.runID)"
+          customPublishInitSteps:
+          - script: echo "##vso[task.setvariable variable=sourceBuildId]$(resources.pipeline.release-staging.runID)"
+            displayName: Set sourceBuildId
+          additionalServiceConnections:
+          - name: $(kusto.serviceConnectionName)
+          - name: $(marStatus.serviceConnectionName)
+          - name: DotnetContainersGitHubBot

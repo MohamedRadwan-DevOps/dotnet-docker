@@ -1,0 +1,75 @@
+{{
+    _ ARGS:
+        is-extra (optional): Whether to include extra packages that are not needed for every app,
+            for example globalization support ^
+
+    set dotnetVersion to join(slice(split(PRODUCT_VERSION, "."), 0, 2), ".") ^
+    set productVersion to VARIABLES[cat("dotnet|", dotnetVersion, "|product-version")] ^
+    set buildVersion to VARIABLES[cat("runtime|", dotnetVersion, "|build-version")] ^
+
+    set isAlpine to find(OS_VERSION, "alpine") >= 0 ^
+    set isAzureLinux to find(OS_VERSION, "azurelinux") >= 0 ^
+    set isDistroless to find(OS_VERSION, "distroless") >= 0 || find(OS_VERSION, "chiseled") >= 0 ^
+    set isFullAzureLinux to isAzureLinux && !isDistroless ^
+    set isDistrolessAzureLinux to isAzureLinux && isDistroless ^
+    set baseUrl to VARIABLES[cat("dotnet|", dotnetVersion, "|base-url|", VARIABLES["branch"])] ^
+    set isInternal to find(baseUrl, "dotnetstage") >= 0 ^
+    set runtimeDepsVariant to when(ARGS["is-extra"], "-extra", "") ^
+    set tagVersion to VARIABLES[cat("dotnet|", dotnetVersion, "|fixed-tag")] ^
+    set runtimeDepsBaseTag to cat(
+        "$REPO:", tagVersion, "-", OS_VERSION, runtimeDepsVariant, ARCH_TAG_SUFFIX) ^
+    set osVersionBase to when(isDistroless, match(OS_VERSION, ".+(?=.*-)")[0], OS_VERSION_BASE) ^
+
+    _ Workaround for https://bugs.launchpad.net/ubuntu/+source/tar/+bug/2059734. Remove when fixed. ^
+    set isUbuntu to find(OS_ARCH_HYPHENATED, "Ubuntu") >= 0 ^
+    set osVersionBase to when(isUbuntu && ARCH_VERSIONED = "arm32v7", "jammy", osVersionBase) ^
+
+    set installerImageTag to when(isDistrolessAzureLinux,
+        VARIABLES[cat("azurelinux|", OS_VERSION_NUMBER, "|core")],
+        when(isAlpine || isFullAzureLinux,
+            runtimeDepsBaseTag,
+            cat(ARCH_VERSIONED, "/buildpack-deps:", osVersionBase, "-curl")))
+
+}}ARG REPO=mcr.microsoft.com/dotnet/runtime-deps
+
+# Installer image
+FROM {{installerImageTag}} AS installer
+{{ if isDistrolessAzureLinux:
+{{InsertTemplate("../Dockerfile.linux.distroless-azurelinux-installer-prereqs")}}
+^elif isFullAzureLinux:
+RUN {{InsertTemplate("../Dockerfile.linux.install-pkgs",
+    [
+        "pkgs": when(OS_VERSION_NUMBER = "3.0", ["tar"], ["gzip", "tar"])
+    ])}}
+}}
+# Retrieve .NET Runtime
+RUN {{if isInternal:--mount=type=secret,id=ACCESSTOKEN,required=true }}{{InsertTemplate("../Dockerfile.download-dotnet", [
+    "product": "runtime",
+    "extract-to": when(isDistroless, "/usr/share/dotnet", "/dotnet")
+], "    ")}}{{
+if isDistroless:
+
+RUN mkdir /dotnet-symlink \
+    && {{InsertTemplate("../Dockerfile.linux.symlink", [
+        "from": "/usr/share/dotnet/dotnet",
+        "to": "/dotnet-symlink/dotnet"
+    ])}}}}
+
+
+# .NET runtime image
+FROM {{runtimeDepsBaseTag}}
+
+{{InsertTemplate("Dockerfile.envs", ["is-standalone": "true"])}}
+{{ if isDistroless:
+COPY --from=installer ["/usr/share/dotnet", "/usr/share/dotnet"]
+COPY --from=installer ["/dotnet-symlink", "/usr/bin"]
+
+ENTRYPOINT ["/usr/bin/dotnet"]
+CMD ["--info"]^
+else:
+COPY --from=installer ["/dotnet", "/usr/share/dotnet"]
+
+RUN {{InsertTemplate("../Dockerfile.linux.symlink", [
+    "from": "/usr/share/dotnet/dotnet",
+    "to": "/usr/bin/dotnet"
+])}}}}

@@ -1,0 +1,62 @@
+trigger: none
+pr: none
+
+parameters:
+- name: sourceBuildPipelineRunId
+  displayName: >
+    Source build pipeline run ID. This refers to runs of *this pipeline*.
+    Override this parameter in combination with disabling the `Build` stage to
+    test images that were built in a different pipeline run. When
+    building new images, leave this value alone.
+  type: string
+  default: $(Build.BuildId)
+- name: noCache
+  displayName: >
+    Disable image caching. By default, an image is built only when its
+    Dockerfile was modified or its base image has been updated. Setting this
+    parameter to true forces all images to be built (except those excluded by
+    path arguments).
+  type: boolean
+  default: false
+- name: publicSourceBranch
+  displayName: Public source branch (the branch that this build is based on)
+  type: string
+  default: main
+  values:
+  - main
+  - nightly
+
+variables:
+- template: /eng/pipelines/variables/core-unofficial.yml@self
+- name: "publicSourceBranch"
+  value: ${{ parameters.publicSourceBranch }}
+  readonly: true
+
+resources:
+  repositories:
+  - repository: VersionsRepo
+    type: github
+    endpoint: dotnet
+    name: dotnet/versions
+    ref: ${{ variables['gitHubVersionsRepoInfo.branch'] }}
+
+extends:
+  template: /eng/docker-tools/templates/1es.yml@self
+  parameters:
+    reposToExcludeFromScanning:
+    - VersionsRepo
+    stages:
+    - template: /eng/docker-tools/templates/stages/dotnet/publish-config-nonprod.yml@self
+      parameters:
+        sourceBuildPipelineRunId: ${{ parameters.sourceBuildPipelineRunId }}
+        stagesTemplate: /eng/pipelines/stages/build-and-test.yml@self
+        stagesTemplateParameters:
+          isStandaloneBuild: true
+          versionsRepoRef: VersionsRepo
+          sourceBuildPipelineRunId: ${{ parameters.sourceBuildPipelineRunId }}
+          noCache: ${{ parameters.noCache }}
+          storageAccountServiceConnection:
+            name: $(dotnetstagingtest.serviceConnectionName)
+            id: $(dotnetstagingtest.serviceConnection.id)
+            tenantId: $(dotnetstagingtest.serviceConnection.tenantId)
+            clientId: $(dotnetstagingtest.serviceConnection.clientId)

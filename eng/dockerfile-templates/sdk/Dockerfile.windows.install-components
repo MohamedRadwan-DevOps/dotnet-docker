@@ -1,0 +1,79 @@
+{{
+    _ ARGS:
+        use-local-version-var (optional): Whether to define a local variable for the SDK version
+            instead of referencing the environment variable.
+        use-access-token (optional): Whether any component is downloaded from internal storage using the
+            ACCESSTOKEN build arg. ^
+
+    set dotnetVersion to join(slice(split(PRODUCT_VERSION, "."), 0, 2), ".") ^
+    set isServerCore to find(OS_VERSION, "windowsservercore") >= 0 ^
+
+    set sdkExtractPaths to [
+        "LICENSE.txt",
+        "ThirdPartyNotices.txt",
+        "packs",
+        "sdk",
+        "sdk-manifests",
+        "templates",
+        "shared"
+    ] ^
+    if (dotnetVersion != "8.0" && dotnetVersion != "9.0"):{{
+        set sdkExtractPaths to cat(["dnx.cmd", "dnx.ps1"], sdkExtractPaths)
+    }}^
+
+    set sdkExtractGroups to [
+        [
+            "dir": "dotnet",
+            "paths": filter(sdkExtractPaths, len)
+        ],
+        [
+            "dir": "dotnet\shared",
+            "paths": [
+                "Microsoft.WindowsDesktop.App"
+            ]
+        ]
+    ] ^
+    set getFormattedPath(path) to:{{
+        return cat("'", path, "'")
+    }} ^
+    set mingitDir to "MinGit"
+}}# Download MinGit
+RUN powershell -Command " `
+        $ErrorActionPreference = 'Stop'; `
+        $ProgressPreference = 'SilentlyContinue'; `
+        `
+        {{InsertTemplate("../Dockerfile.windows.download-files", ["files": [[
+            "url": VARIABLES[cat("mingit|", dotnetVersion, "|", ARCH_SHORT, "|url")],
+            "out-file": "mingit.zip"
+        ]]], "        ")}}; `
+        {{InsertTemplate("../Dockerfile.windows.validate-checksum", [
+            "file": "mingit.zip",
+            "sha": VARIABLES[cat("mingit|", dotnetVersion, "|", ARCH_SHORT, "|sha")],
+            "sha-function": "256",
+            "sha-var-name": "$mingit_sha256"
+        ], "        ")}}; `
+        mkdir {{ mingitDir }}; `
+        {{InsertTemplate("../Dockerfile.windows.extract-file",
+            [
+                "file": "mingit.zip",
+                "dest-dir": mingitDir
+            ], "        ")}}; `
+        Remove-Item -Force mingit.zip"
+
+{{if ARGS["use-access-token"]:SHELL ["powershell", "-command"]
+RUN `^else:RUN powershell -Command " `}}
+        $ErrorActionPreference = 'Stop'; `
+        $ProgressPreference = 'SilentlyContinue'; `
+        `
+        # Retrieve .NET SDK
+        {{InsertTemplate("../Dockerfile.download-dotnet", [
+            "product": "sdk",
+            "extract-to": "dotnet"
+        ], "        ")}}; `
+        `
+        {{InsertTemplate("Dockerfile.windows.install-powershell", [], "        ")}}{{if !isSingleStage: `
+        `
+        # Delete everything in the dotnet folder that's not needed in the SDK layer but will instead be derived from base layers{{
+for i, group in sdkExtractGroups:
+        Get-ChildItem -Exclude {{join(map(group.paths, getFormattedPath), ",")}} -Path {{group.dir}} `
+            | Remove-Item -Force -Recurse{{if i < len(group.paths) - 1:; `}}}}}}{{if !ARGS["use-access-token"]:"}}

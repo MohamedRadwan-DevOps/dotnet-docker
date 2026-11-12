@@ -1,4 +1,0 @@
-variables:
-- template: common.yml
-- name: manifest
-  value: manifest.json

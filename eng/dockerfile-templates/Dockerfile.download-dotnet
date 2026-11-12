@@ -1,0 +1,220 @@
+{{
+    _ Downloads, validate, and extracts the .NET Runtime, ASP.NET Core Runtime, or .NET SDK
+
+    ARGS:
+        product         : Product name, e.g. "dotnet", "aspnet", "sdk"
+        extract-to      : Directory where .NET will be extracted
+        extract-paths   : (optional) Paths within the .NET tarball to extract
+        ^
+
+    set product to ARGS["product"] ^
+
+    set isWindows to find(OS_VERSION, "server") >= 0 ^
+    set isAlpine to find(OS_VERSION, "alpine") >= 0 ^
+
+    set platform to when(isWindows, "win", when(isAlpine, "linux-musl", "linux"))^
+    set templatePlatform to when(isWindows, "windows", "linux") ^
+    set lineEnd to when(isWindows, "; `", " \") ^
+    set lineContinue to when(isWindows, "`", "\") ^
+    set continue to when(isWindows, "", "&& ") ^
+    set remove to when(isWindows, "Remove-Item -Force", "rm") ^
+
+    set useFileVariables to isWindows ^
+    set useExtraLines to isWindows ^
+    set extraLine to when(useExtraLines, cat("
+", lineContinue), "") ^
+
+    set dotnetVersion to join(slice(split(PRODUCT_VERSION, "."), 0, 2), ".") ^
+    set baseUrlType to when(product = "sdk", "sdk", "dotnet") ^
+    set baseUrl to VARIABLES[cat(baseUrlType, "|", dotnetVersion, "|base-url|", VARIABLES["branch"])] ^
+    set checksumsBaseUrl to VARIABLES[cat(baseUrlType, "|", dotnetVersion, "|base-url|checksums|", VARIABLES["branch"])] ^
+    set isInternal to find(baseUrl, "dotnetstage") >= 0 ^
+
+    _ ASP.NET Core 8.0 sha512 files get published as nonshipping artifacts instead of shipping artifacts ^
+    _ Tracking issue: https://github.com/dotnet/release/issues/1395 ^
+    if (dotnetVersion = "8.0" && find(product, "aspnet") >= 0 && isInternal):{{
+        set checksumsBaseUrl to replace(checksumsBaseUrl, "shipping", "nonshipping")
+    }}^
+
+    set productVersion to when(product = "sdk",
+        VARIABLES[cat(product, "|", dotnetVersion, "|product-version")],
+        VARIABLES[cat("dotnet|", dotnetVersion, "|product-version")]
+    )^
+    set buildVersion to VARIABLES[cat(product, "|", dotnetVersion, "|build-version")] ^
+    _ 'Stable' versioning just means that the downloaded file has a stable version.
+      Internal/release stable builds will use product versions for both paths and filenames.
+      Public stable builds still use build versions for paths but stable versions for filenames.
+      Public unstable builds use build versions for both paths and filenames. ^
+    set isStableVersion to find(buildVersion, "alpha") < 0 && find(buildVersion, "preview") < 0 && find(buildVersion, "rc.") < 0 ^
+    set useFinalVersion to VARIABLES[cat(baseUrlType, "|", dotnetVersion, "|use-final-version")] = "true" ^
+    set fileVersion to when(isStableVersion, productVersion, when(useFinalVersion, cat(productVersion, ".final"), buildVersion)) ^
+
+    set archiveExtension to when(isWindows, ".zip", ".tar.gz") ^
+
+    if (product = "runtime"):{{
+        set downloadPath to cat("/Runtime/", buildVersion, "/dotnet-runtime-", fileVersion, "-", platform, "-", ARCH_SHORT, archiveExtension)
+    }}^elif (product = "aspnet"):{{
+        set downloadPath to cat("/aspnetcore/Runtime/", buildVersion, "/aspnetcore-runtime-", fileVersion, "-", platform, "-", ARCH_SHORT, archiveExtension)
+    }}^elif (product = "aspnet-composite"):{{
+        set downloadPath to cat("/aspnetcore/Runtime/", buildVersion, "/aspnetcore-runtime-composite-", fileVersion, "-", platform, "-", ARCH_SHORT, archiveExtension)
+    }}^elif (product = "sdk"):{{
+        set downloadPath to cat("/Sdk/", buildVersion, "/dotnet-sdk-", fileVersion, "-", platform, "-", ARCH_SHORT, archiveExtension)
+    }}^
+    set downloadUrl to cat(baseUrl, downloadPath) ^
+
+    set shaFunction to "512" ^
+    set urlParts to split(downloadUrl, "/") ^
+    set fileName to urlParts[len(urlParts) - 1] ^
+
+    _ New checksum files have both bare and non-bare versions under different
+      file extensions. Old checksum files contain only bare shas. ^
+    _ We want to use the bare checksum files on Windows only. However, the new
+      checksum files aren't available for internal staging builds yet.
+      When https://github.com/dotnet/release/issues/1382 is fixed, internal sha
+      files should match the new format. ^
+    set isReleasedBuild to find(baseUrl, "builds.dotnet.microsoft.com") >= 0 ^
+    set useNewChecksumFiles to (isReleasedBuild && dotnetVersion != "8.0" && dotnetVersion != "9.0") ^
+    set shaUrlIsAggregate to ((dotnetVersion = "8.0" || dotnetVersion = "9.0") && !isInternal) ^
+    set shaFileContentIsBare to (useNewChecksumFiles && isWindows) || (!useNewChecksumFiles && !shaUrlIsAggregate) ^
+    set shaExtension to when(useNewChecksumFiles && isWindows, ".sha512-bare", ".sha512") ^
+
+    set shaUrlPath to when(shaUrlIsAggregate,
+        VARIABLES[cat("dotnet|", dotnetVersion, "|aggregate-checksums")],
+        cat(downloadPath, shaExtension)) ^
+    set shaUrl to cat(checksumsBaseUrl, shaUrlPath) ^
+
+    set shaUrlParts to split(shaUrl, "/") ^
+    set shaFileName to shaUrlParts[len(shaUrlParts) - 1] ^
+
+    _ The .NET SDK has two versions associated with it - SDK version and Runtime version.
+      Aggregate checksum files are associated with the .NET runtime version, so if we're
+      installing the SDK we need to have a separate variable for the runtime version. ^
+    if (product = "sdk" && shaUrlIsAggregate):{{
+        set runtimeVersion to VARIABLES[cat("runtime|", dotnetVersion, "|build-version")]
+    }}^
+
+    set downloadFiles to cat("Dockerfile.", templatePlatform, ".download-files") ^
+    set validateChecksum to cat("Dockerfile.", templatePlatform, ".validate-checksum") ^
+    set extractFile to cat("Dockerfile.", templatePlatform, ".extract-file") ^
+
+    set variableAssignments to [] ^
+
+    _ Replace variables in a string with their values ^
+    set replaceVariables(string) to:{{
+        for variable, value in variableAssignments:{{
+            set string to replace(string, value, cat("$", variable))
+        }}^
+        return string
+    }}^
+
+    _ Replace variables in a string, format specifically for the purpose of
+    assigning to a variable in PowerShell. ^
+    set replaceVariablesPwshString(string) to:{{
+        for variable, value in variableAssignments:{{
+            set found to find(string, value)^
+            if (found = 0):{{
+                _ variable at beginning of string ^
+                return cat(replace(string, value, cat("$", variable, " + '")), "'")
+            }}^elif (found > 0):{{
+                _ variable somewhere in the middle of the string ^
+                set parts to split(string, value)^
+                return cat("'", parts[0], "' + $", variable, " + '", parts[1], "'")
+            }}^_
+        }}^
+        return cat("'", string, "'")
+    }}^
+
+    set assign(variable, value, isPwshString) to:{{
+        _ Add variable to collection, return a string that assigns the variable ^
+        set rhs to when(isWindows,
+            replaceVariablesPwshString(value),
+            replaceVariables(value))^
+        set out to when(isWindows,
+            cat("$", variable, " = ", rhs),
+            cat(variable, "=", rhs))^
+        set variableAssignments to union([variable: value], variableAssignments) ^
+        return out
+    }}
+
+}}{{
+    assign(
+        when(product = "aspnet" || product = "aspnet-composite",
+            "aspnetcore_version",
+        when(product = "sdk",
+            "dotnet_sdk_version",
+            "dotnet_version")),
+        when(isStableVersion, productVersion, buildVersion)
+    )
+}}{{if (isStableVersion && (isInternal || buildVersion != productVersion)):{{lineEnd}}
+{{continue}}{{
+    _ Internal builds and unreleased RC builds have separate build and product versions ^
+    assign(
+        when(product = "aspnet" || product = "aspnet-composite",
+            "aspnetcore_build_version",
+        when(product = "sdk",
+            "dotnet_sdk_build_version",
+            "dotnet_build_version")),
+        buildVersion
+    )^_
+}}}}{{if (useFinalVersion && !isStableVersion):{{lineEnd}}
+{{continue}}{{
+    assign(
+        when(product = "aspnet" || product = "aspnet-composite",
+            "aspnetcore_file_version",
+        when(product = "sdk",
+            "dotnet_sdk_file_version",
+            "dotnet_file_version")),
+        fileVersion
+    )^_
+}}}}{{if runtimeVersion:{{lineEnd}}
+{{continue}}{{
+    assign("dotnet_version", runtimeVersion)
+}}}}{{if useFileVariables:{{lineEnd}}
+{{continue}}{{
+    set fileNameVar to when(product = "aspnet", "aspnetcore_file", "dotnet_file")^
+    assign(fileNameVar, fileName)^
+    set fileName to replaceVariables(fileName)
+}}{{lineEnd}}
+{{continue}}{{
+    set shaFileVar to when(shaUrlIsAggregate, "dotnet_checksums_file", "dotnet_sha512_file")^
+    assign(shaFileVar, shaFileName)^
+    set shaFileName to replaceVariables(shaFileName)
+}}}}{{lineEnd}}{{extraLine}}
+{{continue}}{{
+    set downloadUrl to replaceVariables(downloadUrl) ^
+    set shaUrl to replaceVariables(shaUrl) ^
+    set filesToDownload to when(useFileVariables,
+        [
+            ["out-file": fileName, "url": downloadUrl],
+            ["out-file": shaFileName, "url": shaUrl]
+        ],
+        [
+            ["url": downloadUrl],
+            ["url": shaUrl]
+        ]
+    )^
+    InsertTemplate(downloadFiles, [
+        "files": filesToDownload
+    ])
+}}{{lineEnd}}{{extraLine}}
+{{continue}}{{
+    InsertTemplate(validateChecksum, [
+        "file": replaceVariables(fileName),
+        "sha-function": shaFunction,
+        "sha-file": replaceVariables(shaFileName),
+        "sha-file-is-bare": shaFileContentIsBare,
+        "sha-file-is-aggregate": shaUrlIsAggregate,
+        "use-cmd-escape": isWindows && product = "sdk"
+    ])
+}}{{if ARGS["extract-to"]:{{lineEnd}}{{extraLine}}
+{{continue}}mkdir {{if !isWindows:--parents }}{{ARGS["extract-to"]}}{{lineEnd}}
+{{continue}}{{
+    InsertTemplate(extractFile, [
+        "file": replaceVariables(fileName),
+        "dest-dir": ARGS["extract-to"],
+        "extract-paths": ARGS["extract-paths"]
+    ])
+}}}}{{lineEnd}}
+{{continue}}{{remove}} {{lineContinue}}
+    {{replaceVariables(fileName)}}{{if isWindows:,}} {{lineContinue}}
+    {{replaceVariables(shaFileName)}}

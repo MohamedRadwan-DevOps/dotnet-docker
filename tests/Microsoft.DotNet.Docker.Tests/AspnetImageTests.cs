@@ -1,71 +1,109 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.DotNet.Docker.Tests.TestScenarios;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Microsoft.DotNet.Docker.Tests
+namespace Microsoft.DotNet.Docker.Tests;
+
+[Trait("Category", "aspnet")]
+public class AspnetImageTests(ITestOutputHelper outputHelper) : CommonRuntimeImageTests(outputHelper)
 {
-    [Trait("Category", "aspnet")]
-    public class AspnetImageTests : CommonRuntimeImageTests
+    protected override DotNetImageRepo ImageRepo => DotNetImageRepo.Aspnet;
+
+    public static IEnumerable<object[]> GetImageData() => GetImageData(DotNetImageRepo.Aspnet);
+
+    [DotNetTheory]
+    [MemberData(nameof(GetImageData))]
+    public async Task VerifyFxDependentAppScenario(ProductImageData imageData)
     {
-        public AspnetImageTests(ITestOutputHelper outputHelper)
-            : base(outputHelper)
+        if (Config.IsNightlyRepo && imageData.ImageVariant.HasFlag(DotNetImageVariant.Composite))
         {
+            OutputHelper.WriteLine("Skip test due to https://github.com/dotnet/dotnet-docker/issues/4834");
+            return;
         }
 
-        protected override DotNetImageType ImageType => DotNetImageType.Aspnet;
+        WebScenario scenario = new WebScenario.FxDependent(imageData, DockerHelper, OutputHelper);
+        await scenario.ExecuteAsync();
+    }
 
-        [Theory]
-        [MemberData(nameof(GetImageData))]
-        public async Task VerifyAppScenario(ProductImageData imageData)
+    [DotNetTheory]
+    [MemberData(nameof(GetImageData))]
+    public async Task VerifyGlobalizationScenario(ProductImageData imageData)
+    {
+        if (Config.IsNightlyRepo && imageData.ImageVariant.HasFlag(DotNetImageVariant.Composite))
         {
-            ImageScenarioVerifier verifier = new ImageScenarioVerifier(imageData, DockerHelper, OutputHelper, isWeb: true);
-            await verifier.Execute();
+            OutputHelper.WriteLine("Skip test due to https://github.com/dotnet/dotnet-docker/issues/4834");
+            return;
         }
 
-        [Theory]
-        [MemberData(nameof(GetImageData))]
-        public void VerifyEnvironmentVariables(ProductImageData imageData)
+        await VerifyGlobalizationScenarioBase(imageData);
+    }
+
+    [WindowsImageTheory]
+    [MemberData(nameof(GetImageData))]
+    public async Task VerifyNLSScenario(ProductImageData imageData) =>
+        await VerifyNlsScenarioBase(imageData);
+
+    [DotNetTheory]
+    [MemberData(nameof(GetImageData))]
+    public void VerifyEnvironmentVariables(ProductImageData imageData)
+    {
+        List<EnvironmentVariableInfo> variables = [];
+
+        EnvironmentVariableInfo runtimeVersionInfo =
+            RuntimeImageTests.GetRuntimeVersionVariableInfo(ImageRepo, imageData, DockerHelper);
+
+        // Skip runtime version check due to https://github.com/dotnet/dotnet-docker/issues/4834.
+        // Re-enable when fixed.
+        if (imageData.ImageVariant.HasFlag(DotNetImageVariant.Composite))
         {
-            List<EnvironmentVariableInfo> variables = new List<EnvironmentVariableInfo>();
-
-            EnvironmentVariableInfo aspnetVersionVariableInfo = GetAspnetVersionVariableInfo(imageData, DockerHelper);
-            if (aspnetVersionVariableInfo != null)
-            {
-                variables.Add(aspnetVersionVariableInfo);
-            }
-
-            if (imageData.Version.Major >= 5)
-            {
-                variables.Add(RuntimeImageTests.GetRuntimeVersionVariableInfo(imageData, DockerHelper));
-            }
-
-            base.VerifyCommonEnvironmentVariables(imageData, variables);
+            runtimeVersionInfo = runtimeVersionInfo with { AllowAnyValue = true };
         }
 
-        public static EnvironmentVariableInfo GetAspnetVersionVariableInfo(ProductImageData imageData, DockerHelper dockerHelper)
+        variables.Add(runtimeVersionInfo);
+
+        EnvironmentVariableInfo aspnetVersionVariableInfo =
+            GetAspnetVersionVariableInfo(ImageRepo, imageData, DockerHelper);
+        if (aspnetVersionVariableInfo != null)
         {
-            string versionEnvName = null;
-            if (imageData.Version.Major == 2 && DockerHelper.IsLinuxContainerModeEnabled)
-            {
-                versionEnvName = "ASPNETCORE_VERSION";
-            }
-            else if (imageData.Version.Major >= 5)
-            {
-                versionEnvName = "ASPNET_VERSION";
-            }
-
-            if (versionEnvName != null)
-            {
-                string version = imageData.GetProductVersion(DotNetImageType.Aspnet, dockerHelper);
-                return new EnvironmentVariableInfo(versionEnvName, version);
-            }
-
-            return null;
+            variables.Add(aspnetVersionVariableInfo);
         }
+
+        VerifyCommonEnvironmentVariables(imageData, variables);
+    }
+
+    [LinuxImageTheory]
+    [MemberData(nameof(GetImageData))]
+    public void VerifyInstalledPackages(ProductImageData imageData) => VerifyInstalledPackagesBase(imageData, ImageRepo);
+
+    [LinuxImageTheory]
+    [MemberData(nameof(GetImageData))]
+    public void VerifyInsecureFiles(ProductImageData imageData) => VerifyCommonInsecureFiles(imageData);
+
+    [LinuxImageTheory]
+    [MemberData(nameof(GetImageData))]
+    public void VerifyShellNotInstalledForDistroless(ProductImageData imageData) => VerifyCommonShellNotInstalledForDistroless(imageData);
+
+    [DotNetTheory]
+    [MemberData(nameof(GetImageData))]
+    public void VerifyNoSasToken(ProductImageData imageData) => VerifyCommonNoSasToken(imageData);
+
+    [DotNetTheory]
+    [MemberData(nameof(GetImageData))]
+    public void VerifyDefaultUser(ProductImageData imageData) => VerifyCommonDefaultUser(imageData);
+
+    public static EnvironmentVariableInfo GetAspnetVersionVariableInfo(
+        DotNetImageRepo imageRepo, ProductImageData imageData, DockerHelper dockerHelper)
+    {
+        string version = imageData.GetProductVersion(imageRepo, DotNetImageRepo.Aspnet, dockerHelper);
+
+        return EnvironmentVariableInfo.Require("ASPNET_VERSION", version) with
+        {
+            IsProductVersion = true
+        };
     }
 }

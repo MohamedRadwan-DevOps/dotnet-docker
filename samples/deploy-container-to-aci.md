@@ -2,7 +2,7 @@
 
 You can deploy ASP.NET Core applications to Azure Container Instances (ACI) with Docker. ACI is a great option for application testing and can also be used for production deployment (not covered here). These instructions are based on the [ASP.NET Core Docker Sample](README.md).
 
-These instructions work for both Linux and Windows based images.  Be aware that ACI does not support all versions of Windows images.  See [What Windows base OS images are supported](https://docs.microsoft.com/en-us/azure/container-instances/container-instances-faq#what-windows-base-os-images-are-supported) for details.
+These instructions work for both Linux and Windows based images.  Be aware that ACI does not support all versions of Windows images.  See [What Windows base OS images are supported](https://learn.microsoft.com/azure/container-instances/container-instances-faq) for details.
 
 ## Build Application
 
@@ -10,7 +10,7 @@ Build the application per the [ASP.NET Core Docker Sample](README.md) instructio
 
 ```console
 cd samples
-cd aspnetapp
+cd AspNetCoreRazorApp
 docker build --pull -t aspnetapp -f Dockerfile .
 ```
 
@@ -18,7 +18,8 @@ docker build --pull -t aspnetapp -f Dockerfile .
 
 Create an ACR registry per the instructions at [Push Docker Images to Azure Container Registry](push-image-to-acr.md). The following is a summarized version of those instructions.
 
-> Note: Change the password location and the user account ("rich" and "richlander") example values in your environment.
+> [!NOTE]
+> Change the password location and the user account ("rich" and "richlander") example values in your environment.
 
 ```console
 az login
@@ -88,5 +89,5 @@ az group exists --name richlander-containers
 
 ## More Samples
 
-* [.NET Core Docker Samples](../README.md)
+* [.NET Docker Samples](../README.md)
 * [.NET Framework Docker Samples](https://github.com/microsoft/dotnet-framework-docker-samples/)

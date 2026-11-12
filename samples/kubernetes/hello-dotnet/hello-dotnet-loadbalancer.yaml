@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-dotnet
+  labels:
+    app: aspnetapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: aspnetapp
+  template:
+    metadata:
+      labels:
+        app: aspnetapp
+    spec:
+      securityContext:
+        runAsNonRoot: true  
+      containers:
+      - name: aspnetapp
+        image: mcr.microsoft.com/dotnet/samples:aspnetapp-chiseled
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            memory: "60Mi"
+            cpu: "250m" # same as 0.25
+          limits:
+            memory: "100Mi"
+            cpu: "500m" # same as 0.5
+        livenessProbe:
+          httpGet:
+            path: "/healthz"
+            port: 8080
+        securityContext:
+          allowPrivilegeEscalation: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-dotnet
+spec:
+  type: LoadBalancer
+  selector:
+    app: aspnetapp
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 8080

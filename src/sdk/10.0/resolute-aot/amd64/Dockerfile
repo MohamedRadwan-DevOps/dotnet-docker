@@ -1,0 +1,9 @@
+ARG REPO=mcr.microsoft.com/dotnet/sdk
+FROM $REPO:10.0.404-resolute-amd64
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        clang \
+        llvm \
+        zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*

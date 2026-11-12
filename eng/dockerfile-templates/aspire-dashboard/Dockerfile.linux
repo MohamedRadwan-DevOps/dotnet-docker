@@ -1,0 +1,54 @@
+{{
+    set aspireVersionParts to split(PRODUCT_VERSION, ".") ^
+    set aspireMajorMinor to cat(aspireVersionParts[0], ".", aspireVersionParts[1]) ^
+
+    set isAzureLinux to find(OS_VERSION, "azurelinux") >= 0 ^
+    set runtimeDepsBaseTag to
+        cat("$REPO:", VARIABLES[cat("dotnet|11.0|product-version")], "-", OS_VERSION, "-extra", ARCH_TAG_SUFFIX) ^
+    set osVersionBase to match(OS_VERSION, ".+(?=.*-)")[0] ^
+    set installerImageTag to when(isAzureLinux,
+        VARIABLES[cat("azurelinux|", OS_VERSION_NUMBER, "|core")],
+        cat(ARCH_VERSIONED, "/buildpack-deps:", osVersionBase, "-curl")) ^
+
+    set baseUrl to VARIABLES[cat("aspire-dashboard|base-url|", VARIABLES["branch"])] ^
+    set isInternal to find(baseUrl, "dotnetstage") >= 0 ^
+
+    set buildVersion to VARIABLES["aspire-dashboard|build-version"] ^
+    set aspireVersionVariable to when(find(buildVersion, '-rtm') >= 0 || find(buildVersion, '-servicing') >= 0, "product-version", "build-version") ^
+    set aspireVersion to VARIABLES[cat("aspire-dashboard|", aspireVersionVariable)] ^
+    set versionFolder to when(buildVersion != aspireVersion, buildVersion, '$dotnet_aspire_version') ^
+    set aspireBaseUrl to cat(VARIABLES[cat("aspire-dashboard|base-url|", VARIABLES["branch"])], "/aspire/", versionFolder, "/") ^
+
+    set downloadUrl to cat(aspireBaseUrl, "aspire-dashboard-linux-", ARCH_SHORT, ".zip") ^
+    set outFile to "aspire_dashboard.zip" ^
+    set appDir to "/app" ^
+    set sha to VARIABLES[join(["aspire-dashboard", "linux", ARCH_SHORT, "sha"], "|")]
+
+}}ARG REPO=mcr.microsoft.com/dotnet/runtime-deps
+
+# Installer image
+FROM {{installerImageTag}} AS installer
+{{if isAzureLinux:
+{{InsertTemplate("../Dockerfile.linux.distroless-azurelinux-installer-prereqs", [ "is-zip": "true" ])}}
+}}
+# Retrieve Aspire Dashboard
+RUN {{if isInternal:--mount=type=secret,id=ACCESSTOKEN,required=true }}dotnet_aspire_version={{aspireVersion}} \
+    && {{InsertTemplate("../Dockerfile.linux.download-appliance", [
+        "product": "aspire_dashboard",
+        "productVersion": aspireVersion,
+        "download-url": downloadUrl,
+        "sha": sha,
+        "file-name": outFile,
+        "extract-to": appDir
+    ], "    ")}}
+
+
+# Aspire Dashboard image
+FROM {{runtimeDepsBaseTag}}
+
+WORKDIR {{appDir}}
+COPY --from=installer {{appDir}} .
+
+{{InsertTemplate("Dockerfile.envs")}}
+
+ENTRYPOINT [ "{{appDir}}/Aspire.Dashboard" ]

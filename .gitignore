@@ -13,10 +13,9 @@ artifacts/
 .vs/
 
 # Visual Studio Code cache/options directory
-.vscode/
-
-# Visual Studio debug profile
-**/launchSettings.json
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
 
 # Test files
 *.trx
@@ -27,3 +26,6 @@ artifacts/
 
 # ImageBuilder directory
 .Microsoft.DotNet.ImageBuilder
+
+# Snapshots for acceptance testing (Shouldly)
+*.received.*

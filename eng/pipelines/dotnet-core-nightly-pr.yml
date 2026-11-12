@@ -10,19 +10,23 @@ pr:
     - eng/*
     - src/*
     - tests/*
+    exclude:
+    - eng/update-dependencies
+
+variables:
+- template: /eng/pipelines/variables/core-unofficial.yml
 
 resources:
   repositories:
   - repository: VersionsRepo
     type: github
-    endpoint: dotnet
+    endpoint: public
     name: dotnet/versions
-
-variables:
-- template: variables/core.yml
+    ref: ${{ variables['gitHubVersionsRepoInfo.branch'] }}
 
 stages:
-- template: ../common/templates/stages/build-test-publish-repo.yml
+- template: /eng/docker-tools/templates/stages/dotnet/publish-config-nonprod.yml@self
   parameters:
-    buildMatrixType: platformVersionedOs
-    buildMatrixCustomBuildLegGroupArgs: --custom-build-leg-group pr-build --custom-build-leg-group test-dependencies
+    stagesTemplate: /eng/pipelines/stages/build-test-publish-repo.yml@self
+    stagesTemplateParameters:
+      versionsRepoRef: VersionsRepo

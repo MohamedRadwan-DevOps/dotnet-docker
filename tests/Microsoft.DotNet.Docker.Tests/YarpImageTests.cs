@@ -1,0 +1,76 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace Microsoft.DotNet.Docker.Tests;
+
+[Trait("Category", "yarp")]
+public class YarpImageTests(ITestOutputHelper outputHelper) : CommonRuntimeImageTests(outputHelper)
+{
+    protected override DotNetImageRepo ImageRepo => DotNetImageRepo.Yarp;
+
+    public static IEnumerable<object[]> GetImageData() =>
+        TestData.GetYarpImageData()
+            .Select(imageData => new object[] { imageData });
+
+    [DotNetTheory]
+    [MemberData(nameof(GetImageData))]
+#pragma warning disable xUnit1026 // Retain the MemberData parameter while this test body is temporarily disabled.
+    public Task VerifyBasicScenario(ProductImageData _)
+#pragma warning restore xUnit1026
+    {
+        OutputHelper.WriteLine("Skipping VerifyBasicScenario test due to known issues."
+            + " Re-enable this test once the following issue is resolved:"
+            + " https://github.com/dotnet/dotnet-docker/issues/6639");
+        return Task.CompletedTask;
+
+        // YarpBasicScenario testScenario = new(YarpWebPort, imageData, DockerHelper, OutputHelper);
+        // await testScenario.ExecuteAsync();
+    }
+
+    [DotNetTheory]
+    [MemberData(nameof(GetImageData))]
+    public void VerifyEnvironmentVariables(ProductImageData imageData)
+    {
+        IEnumerable<EnvironmentVariableInfo> expectedVariables =
+        [
+            // Unset ASPNETCORE_HTTP_PORTS from base image
+            EnvironmentVariableInfo.Require("ASPNETCORE_HTTP_PORTS", string.Empty),
+            EnvironmentVariableInfo.Require("ASPNETCORE_URLS", "http://+:5000"),
+        ];
+
+        string imageTag = imageData.GetImage(ImageRepo, DockerHelper);
+        EnvironmentVariableInfo.Validate(expectedVariables, imageTag, DockerHelper);
+    }
+
+    [LinuxImageTheory]
+    [MemberData(nameof(GetImageData))]
+#pragma warning disable xUnit1026 // Retain the MemberData parameter while this test body is temporarily disabled.
+    public void VerifyInsecureFiles(ProductImageData _)
+#pragma warning restore xUnit1026
+    {
+        OutputHelper.WriteLine("Skipping VerifyInsecureFiles test due to known issues."
+            + " Re-enable this test once the following issue is resolved:"
+            + " https://github.com/dotnet/dotnet-docker/issues/6638");
+
+        // VerifyCommonInsecureFiles(imageData);
+    }
+
+    [LinuxImageTheory]
+    [MemberData(nameof(GetImageData))]
+    public void VerifyShellNotInstalledForDistroless(ProductImageData imageData)
+        => VerifyCommonShellNotInstalledForDistroless(imageData);
+
+    [DotNetTheory]
+    [MemberData(nameof(GetImageData))]
+    public void VerifyNoSasToken(ProductImageData imageData) => VerifyCommonNoSasToken(imageData);
+
+    [DotNetTheory]
+    [MemberData(nameof(GetImageData))]
+    public void VerifyDefaultUser(ProductImageData imageData) => VerifyCommonDefaultUser(imageData);
+}

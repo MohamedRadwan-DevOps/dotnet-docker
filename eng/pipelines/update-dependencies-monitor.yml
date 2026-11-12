@@ -1,0 +1,59 @@
+resources:
+  pipelines:
+  - pipeline: dotnet-monitor
+    source: dotnet-dotnet-monitor
+    trigger:
+      branches:
+        include:
+        - main
+        - feature/9.x
+        - release/*
+        - internal/release/*
+      tags:
+      - update-docker
+      - real signed
+trigger: none
+pr: none
+
+parameters:
+  - name: skipPullRequest
+    displayName: Skip Pull Request
+    type: boolean
+    default: false
+
+variables:
+- template: /eng/docker-tools/templates/variables/dotnet/common.yml@self
+
+stages:
+- stage: Monitor
+  jobs:
+  - job: UpdateDependencies
+    displayName: Update Dependencies (dotnet/dotnet-monitor)
+    pool:
+      vmImage: $(defaultLinuxAmd64PoolImage)
+    steps:
+    - checkout: self
+      fetchDepth: 0
+    - template: steps/install-dotnet.yml
+    - ${{ if not(parameters.skipPullRequest) }}:
+      - task: AzureCLI@2
+        displayName: Update .NET Monitor
+        inputs:
+          azureSubscription: DotnetContainersGitHubBot
+          scriptType: pscore
+          scriptLocation: inlineScript
+          inlineScript: >-
+            dotnet run --project "$(engPath)/update-dependencies/update-dependencies.csproj" --
+            monitor pipeline-build "$(resources.pipeline.dotnet-monitor.runID)"
+            --submit-pr
+        env:
+          SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+          UpdateDependencies__GitHub__AppClientId: $(dotnetContainersBot.gitHubApp.clientId)
+          UpdateDependencies__GitHub__AppKeyUri: $(dotnetContainersBot.gitHubApp.privateKeyUri)
+    - ${{ else }}:
+      - pwsh: >-
+          dotnet run --project "$(engPath)/update-dependencies/update-dependencies.csproj" --
+          monitor pipeline-build "$(resources.pipeline.dotnet-monitor.runID)"
+        displayName: Update .NET Monitor
+        env:
+          SYSTEM_ACCESSTOKEN: $(System.AccessToken)

@@ -1,0 +1,27 @@
+trigger: none
+pr: none
+
+parameters:
+# Comma-delimited list of stage container names (e.g., "stage-1234567,stage-2345678")
+# Each stage container will be processed in sequence.
+- name: stageContainers
+  type: string
+  default: ""
+  displayName: Comma-delimited list of stage containers to process
+
+variables:
+- template: /eng/docker-tools/templates/variables/dotnet/common.yml@self
+# This pipeline expects there to be a variable named "targetBranch" defined
+# in the Azure Pipelines GUI. It should be able to be overridden at pipeline
+# queue time. A pull request will be created targeting that branch.
+# It is not a parameter since it needs to be permanent but also changed to the
+# next release branch every month without modifying the pipeline YAML.
+
+extends:
+  template: /eng/pipelines/pipelines/update-dependencies-internal.yml@self
+  parameters:
+    stageContainers: "${{ parameters.stageContainers }}"
+    stagingStorageAccount: "dotnetstage"
+    targetBranch: "$(targetBranch)"
+    gitServiceConnectionName: "$(updateDepsInt.serviceConnectionName)"
+    poolPriority: High

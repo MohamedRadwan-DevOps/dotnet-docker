@@ -1,13 +1,26 @@
 trigger: none
 pr: none
+
 variables:
-- template: variables/common.yml
-- name: manifest
-  value: manifest.json
-jobs:
-- job: UpdateReadmes
-  pool: Hosted Ubuntu 1604
-  steps:
-  - template: ../common/templates/steps/init-docker-linux.yml
-  - template: ../common/templates/steps/publish-readmes.yml
-  - template: ../common/templates/steps/cleanup-docker-linux.yml
+- template: /eng/pipelines/variables/core-official.yml@self
+
+extends:
+  template: /eng/docker-tools/templates/1es-official.yml@self
+  parameters:
+    stages:
+    - stage: UpdateReadmes
+      displayName: Update Readmes
+      jobs:
+      - job: UpdateReadmes
+        displayName: Update Readmes
+        steps:
+        - template: /eng/docker-tools/templates/steps/init-common.yml@self
+          parameters:
+            dockerClientOS: linux
+        - template: /eng/pipelines/steps/set-public-source-branch-var.yml@self
+        - template: /eng/docker-tools/templates/steps/set-image-info-path-var.yml@self
+          parameters:
+            publicSourceBranch: $(publicSourceBranch)
+        - template: /eng/pipelines/steps/set-publish-mcrdocs-args-var.yml@self
+        - template: /eng/docker-tools/templates/steps/publish-readmes.yml@self
+        - template: /eng/docker-tools/templates/steps/cleanup-docker-linux.yml@self

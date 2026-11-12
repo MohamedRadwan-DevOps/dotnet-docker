@@ -1,0 +1,123 @@
+{{
+    _ ARGS:
+        is-extra (optional): Whether to include extra packages that are not needed for every app,
+            for example globalization support ^
+
+    set dotnetVersion to join(slice(split(PRODUCT_VERSION, "."), 0, 2), ".") ^
+    set osVersionBase to match(OS_VERSION, ".+(?=.*-)")[0] ^
+    set osVersionNumber to split(OS_ARCH_HYPHENATED, "-")[1] ^
+
+    set chiselUrl to VARIABLES[cat("chisel|", dotnetVersion, "|", ARCH_SHORT, "|url")] ^
+    set chiselFileName to "chisel.tar.gz" ^
+    set shaFunction to "384" ^
+    set chiselSha to VARIABLES[cat("chisel|", dotnetVersion, "|", ARCH_SHORT, "|sha", shaFunction)] ^
+    set rocksToolboxBaseUrl to VARIABLES[cat("rocks-toolbox|", dotnetVersion, "|url")] ^
+    set rocksToolboxRef to VARIABLES[cat("rocks-toolbox|", dotnetVersion, "|version")] ^
+    set rocksToolboxUrl to cat(rocksToolboxBaseUrl, "/", rocksToolboxRef, "/chisel-wrapper") ^
+
+    set installerImageTag to cat(ARCH_VERSIONED, "/buildpack-deps:", osVersionBase, "-curl") ^
+
+    set opensslPkg to when(match(osVersionBase, "jammy"), "libssl3", "libssl3t64") ^
+
+    set basePkgs to [
+            "base-files_base",
+            "base-files_release-info",
+            "ca-certificates_data",
+            "libc6_libs",
+            "libgcc-s1_libs",
+            cat(opensslPkg, "_libs"),
+            "libstdc++6_libs"
+        ] ^
+
+    set basePkgs to when (dotnetVersion = "8.0", cat(basePkgs, ["zlib1g_libs"]), basePkgs) ^
+    set basePkgs to when (dotnetVersion != "8.0" && dotnetVersion != "9.0", cat(basePkgs, ["base-files_chisel"]), basePkgs) ^
+
+    _ tzdata package layout changed greatly between jammy and noble. tzdata_zoneinfo-icu is no longer necessary.
+        See https://github.com/canonical/chisel-releases/pull/91. ^
+    set tzdataPkgs to when(match(osVersionBase, "jammy"),
+        [
+            "tzdata_zoneinfo",
+            "tzdata_zoneinfo-icu"
+        ],
+        [
+            "tzdata_zoneinfo",
+            "tzdata-legacy_zoneinfo"
+        ]) ^
+    set icuPkgs to [ cat("libicu", VARIABLES[cat("libicu|", osVersionBase)], "_libs") ] ^
+    set extraPkgs to cat(basePkgs, tzdataPkgs, icuPkgs) ^
+
+    set pkgs to when(ARGS["is-extra"], extraPkgs, basePkgs) ^
+
+    _ Sort packages.
+        Arrays in cottle are actually key-value maps - for example ["1": "foo", "2": "bar"]
+        Sorting the array sorts by value but does not change the key-value pairs: ["2": "bar", "1": "foo"]
+        In order to have the correct index in the array, we must call `cat` again to reset the
+        indices (keys) in the map, otherwise they'll be out of order.
+        ^
+    set pkgs to cat(sort(cat(pkgs))) ^
+
+    set username to "app" ^
+    set uid to 1654 ^
+    set gid to uid
+
+}}FROM {{installerImageTag}} AS chisel
+
+RUN apt-get update && apt-get install -y file
+
+RUN {{InsertTemplate("../Dockerfile.linux.download-files", ["files": [[
+        "url": chiselUrl,
+        "out-file": chiselFileName
+    ]]], "    ")}} \
+    && {{InsertTemplate("../Dockerfile.linux.validate-checksum", [
+        "file": chiselFileName,
+        "sha-function": shaFunction,
+        "sha": chiselSha,
+        "sha-var-name": cat("chisel_sha", shaFunction)
+    ], "    ")}} \
+    && {{InsertTemplate("../Dockerfile.linux.extract-file", [
+        "file": chiselFileName,
+        "dest-dir": "/usr/bin/"
+    ], "    ")}} \
+    && rm {{chiselFileName}} \
+    && {{InsertTemplate("../Dockerfile.linux.download-files", ["files": [[
+        "url": rocksToolboxUrl,
+        "out-file": "/usr/bin/chisel-wrapper"
+    ]]], "    ")}} \
+    && chmod 755 /usr/bin/chisel-wrapper \
+    # Workaround for https://github.com/canonical/rocks-toolbox/issues/55
+    && sed --in-place \
+        -e 's|dir="$CHISEL_CACHE_DIR/chisel/sha256"|dir="$CHISEL_CACHE_DIR/chisel"|' \
+        -e 's|for f in "$dir"/\*; do|for f in "$dir"/sha*/*; do|' \
+        /usr/bin/chisel-wrapper
+
+RUN {{InsertTemplate("Dockerfile.linux.non-root-user-staged", [
+        "staging-dir": "/rootfs",
+        "exclusive": "true",
+        "create-dir": "true",
+        "name": username,
+        "uid": uid,
+        "gid": gid,
+        "create-home": "true"
+    ])}}
+
+RUN mkdir --parents /rootfs/var/lib/dpkg/ \
+    && chisel-wrapper --generate-dpkg-status /rootfs/var/lib/dpkg/status -- \
+        --release ubuntu-{{osVersionNumber}}{{if match(osVersionBase, "resolute"): --ignore=unstable}} --root /rootfs \{{for index, pkg in pkgs:
+            {{pkg}}{{if index < len(pkgs) - 1: \}}}}
+
+
+FROM scratch
+
+COPY --from=chisel /rootfs /
+
+{{InsertTemplate("../Dockerfile.common-dotnet-envs",
+    [
+        "uid": uid,
+        "globalization-invariant": !ARGS["is-extra"]
+    ]
+)}}
+
+# Workaround for https://github.com/moby/moby/issues/38710
+COPY --from=chisel --chown=$APP_UID:$APP_UID /rootfs/home/{{username}} /home/{{username}}
+
+USER $APP_UID

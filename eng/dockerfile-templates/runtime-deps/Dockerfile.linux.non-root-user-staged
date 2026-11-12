@@ -1,0 +1,33 @@
+{{
+    _ Configures the non-root user and group to be installed in a staging directory
+    _ ARGS:
+        staging-dir: Path to the staging directory
+        name: Name of the user/group to create
+        create-dir (optional): Indicates whether the etc directory should be created in staging
+        exclusive (optional): Indicates whether the app user is the only user and all other users are removed
+        uid: (optional) ID of the user to be created, $APP_UID by default
+        gid: (optional) ID of the group to be created, same as uid by default
+        no-create-home (optional): Indicates whether a home directory should be created for the user ^
+    set dotnetVersion to join(slice(split(PRODUCT_VERSION, "."), 0, 2), ".") ^
+    set isAzureLinux to find(OS_VERSION, "azurelinux") >= 0 ^
+    set isAlpine to find(OS_VERSION, "alpine") >= 0 ^
+    set isDistroless to find(OS_VERSION, "distroless") >= 0 || find(OS_VERSION, "chiseled") >= 0 ^
+    set uid to when(len(ARGS["uid"]) > 0, ARGS["uid"], "$APP_UID") ^
+    set gid to when(len(ARGS["gid"]) > 0, ARGS["gid"], uid)
+}}{{InsertTemplate("Dockerfile.linux.non-root-user",
+[
+    "name": ARGS["name"],
+    "uid": uid,
+    "gid": gid,
+    "no-create-home": ARGS["no-create-home"],
+    "no-shell": isDistroless
+])}} \{{if !ARGS["no-create-home"]:
+    && install --directory --mode 0755 --owner {{uid}} --group {{gid}} "{{ARGS["staging-dir"]}}/home/{{ARGS["name"]}}" \}}{{if ARGS["create-dir"]:
+    && mkdir --parents "{{ARGS["staging-dir"]}}/etc" \}}{{if ARGS["exclusive"]:
+    && rootOrAppRegex='@^\(root\|app\):' \
+    && cat /etc/passwd | grep $rootOrAppRegex > "{{ARGS["staging-dir"]}}/etc/passwd" \
+    && cat /etc/group | grep $rootOrAppRegex > "{{ARGS["staging-dir"]}}/etc/group"^
+    else:
+    # Copy user/group info to staging
+    && cp /etc/passwd {{ARGS["staging-dir"]}}/etc/passwd \
+    && cp /etc/group {{ARGS["staging-dir"]}}/etc/group}}

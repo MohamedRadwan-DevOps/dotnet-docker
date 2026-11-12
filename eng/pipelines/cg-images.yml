@@ -1,0 +1,24 @@
+trigger: none
+pr: none
+
+schedules:
+- cron: "0 12 * * Sun"
+  displayName: Weekend build
+  branches:
+    include:
+    - main
+    - nightly
+  always: true
+
+variables:
+- template: /eng/docker-tools/templates/variables/common.yml@self
+- name: publicGitRepoUri
+  value: https://github.com/dotnet/dotnet-docker
+- name: ComponentDetection.Timeout
+  value: 7200 # 2 hours in seconds
+
+extends:
+  template: /eng/docker-tools/templates/1es-official.yml@self
+  parameters:
+    stages:
+    - template: /eng/pipelines/stages/cg-images.yml@self

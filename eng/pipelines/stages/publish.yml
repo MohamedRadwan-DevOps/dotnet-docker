@@ -1,0 +1,58 @@
+# A wrapper template around the common .NET publish template with settings
+# specific to the Dockerfiles in this repo.
+
+parameters:
+  - name: publishConfig
+    type: object
+  - name: internalProjectName
+    type: string
+  - name: publicProjectName
+    type: string
+  - name: linuxAmd64Pool
+    type: string
+    default: ""
+  - name: poolPriority
+    type: string
+    default: ""
+  - name: isStandalonePublish
+    type: boolean
+    default: false
+  # Additional service connections needed by this pipeline that are not included
+  # in the publishConfig.
+  - name: additionalServiceConnections
+    type: object
+    default: []
+  - name: customPublishInitSteps
+    type: stepList
+    default: []
+  - name: sourceBuildPipelineDefinitionId
+    type: string
+    default: ''
+  - name: sourceBuildPipelineRunId
+    type: string
+    default: ''
+  - name: versionsRepoRef
+    type: string
+    default: ''
+  - name: overrideImageInfoCommit
+    type: boolean
+    default: false
+
+stages:
+- template: /eng/docker-tools/templates/stages/dotnet/publish.yml@self
+  parameters:
+    publishConfig: ${{ parameters.publishConfig }}
+    internalProjectName: ${{ parameters.internalProjectName }}
+    publicProjectName: ${{ parameters.publicProjectName }}
+    versionsRepoRef: ${{ parameters.versionsRepoRef }}
+    isStandalonePublish: ${{ parameters.isStandalonePublish }}
+    additionalServiceConnections: ${{ parameters.additionalServiceConnections }}
+    pool: ${{ parameters.linuxAmd64Pool }}
+    poolPriority: ${{ parameters.poolPriority }}
+    customPublishInitSteps:
+    - ${{ parameters.customPublishInitSteps }}
+    - template: /eng/pipelines/steps/set-public-source-branch-var.yml@self
+    - template: /eng/pipelines/steps/set-publish-mcrdocs-args-var.yml@self
+    sourceBuildPipelineDefinitionId: ${{ parameters.sourceBuildPipelineDefinitionId }}
+    sourceBuildPipelineRunId: ${{ parameters.sourceBuildPipelineRunId }}
+    overrideImageInfoCommit: ${{ parameters.overrideImageInfoCommit }}

@@ -1,0 +1,69 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Microsoft.DotNet.Internal.AzureDevOps.Authentication;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.VisualStudio.Services.Common;
+using Microsoft.VisualStudio.Services.WebApi;
+
+namespace Microsoft.DotNet.Docker.UpdateDependencies;
+
+public interface IAzdoAuthProvider
+{
+    /// <summary>
+    /// Gets an Azure DevOps REST API access token.
+    /// </summary>
+    string AccessToken { get; }
+
+    /// <summary>
+    /// Gets a connection to Azure DevOps Services.
+    /// </summary>
+    VssConnection GetVssConnection(string azdoOrg);
+}
+
+public class AzdoAuthProvider(
+    IAzureDevOpsTokenProvider tokenProvider,
+    IConfiguration configuration) : IAzdoAuthProvider
+{
+    /// <summary>
+    /// Uses the pipeline token for artifact access, falling back to configured Azure DevOps authentication.
+    /// </summary>
+    public string AccessToken
+    {
+        get
+        {
+            // Git operations use the token provider directly to retain the service connection identity.
+            string? pipelineToken = configuration["SYSTEM_ACCESSTOKEN"];
+            return !string.IsNullOrWhiteSpace(pipelineToken)
+                ? pipelineToken
+                : tokenProvider.GetTokenForAccount("default");
+        }
+    }
+
+    /// <summary>
+    /// Gets a connection to Azure DevOps Services.
+    /// </summary>
+    /// <param name="azdoOrg">
+    /// The URI of the Azure DevOps organization or collection. For example,
+    /// https://dev.azure.com/fabrikamfiber/. You can get this from the Azure
+    /// Pipeline variable $(System.CollectionUri).
+    /// </param>
+    /// <returns>
+    /// A <see cref="VssConnection"/> that can be used to connect to Azure
+    /// DevOps Services.
+    /// </returns>
+    public VssConnection GetVssConnection(string azdoOrg)
+    {
+        Uri baseUrl = new Uri(azdoOrg);
+        VssBasicCredential credential = new VssBasicCredential(userName: string.Empty, password: AccessToken);
+        VssConnection connection = new VssConnection(baseUrl, credential);
+        return connection;
+    }
+}
+
+internal static class AzdoAuthProviderExtensions
+{
+    public static IServiceCollection AddAzdoAuthProvider(this IServiceCollection services) =>
+        services.AddSingleton<IAzdoAuthProvider, AzdoAuthProvider>();
+}

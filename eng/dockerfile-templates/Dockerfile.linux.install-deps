@@ -1,0 +1,113 @@
+{{
+    _ ARGS:
+        is-aot (optional): Whether to use the smallest set of packages that is necessary to run native AOT apps
+        is-extra (optional): Whether to include extra packages that are not needed for every app,
+            for example globalization support
+        staging-dir (optional): Location of the staging directory for distroless installation ^
+
+    set dotnetVersion to join(slice(split(PRODUCT_VERSION, "."), 0, 2), ".") ^
+    set isAlpine to find(OS_ARCH_HYPHENATED, "Alpine") >= 0 ^
+    set isDebian to find(OS_ARCH_HYPHENATED, "Debian") >= 0 ^
+    set isUbuntu to find(OS_ARCH_HYPHENATED, "Ubuntu") >= 0 ^
+    set isAzureLinux to find(OS_VERSION, "azurelinux") >= 0 ^
+    set isDistrolessAzureLinux to defined(match(OS_VERSION, "^azurelinux\d+\.\d+-distroless$")) ^
+    set isAzureLinux3 to defined(match(OS_VERSION, "^azurelinux3")) ^
+    set isFullAzureLinux to isAzureLinux && !isDistrolessAzureLinux ^
+
+    set dotnetDepsComment to "# .NET dependencies" ^
+
+    set zlibPkg to when(isUbuntu || isDebian, "zlib1g", "zlib") ^
+    set caCertsPkg to when(isDistrolessAzureLinux,
+        "prebuilt-ca-certificates",
+        when(isAlpine,
+            "ca-certificates-bundle",
+            "ca-certificates")) ^
+
+    set basePkgs to when(isAzureLinux,
+        [
+            "glibc",
+            "libgcc",
+            "openssl-libs"
+        ],
+        when(isAlpine,
+            [
+                "libgcc",
+                cat("libssl", VARIABLES[cat("libssl|", OS_VERSION_BASE)])
+            ],
+            [
+                "libc6",
+                "libgcc-s1",
+                cat("libssl", VARIABLES[cat("libssl|", OS_VERSION_BASE)])
+            ]
+        )) ^
+    set basePkgs to when(dotnetVersion = "8.0", cat(basePkgs, [zlibPkg]), basePkgs) ^
+
+    set standardPkgs to sort(cat(basePkgs,
+        when(isAzureLinux || isAlpine,
+            [
+                "libstdc++"
+            ],
+            [
+                "libstdc++6",
+            ]
+        ))) ^
+
+    set extraPkgs to
+        sort(cat(standardPkgs,
+            when (isAzureLinux,
+            [
+                "icu",
+                "tzdata"
+            ],
+            when(isAlpine,
+            [
+                "icu-data-full",
+                "icu-libs",
+                "tzdata"
+            ],
+            cat(
+            [
+                cat("libicu", VARIABLES[cat("libicu|", OS_VERSION_BASE)]),
+                "tzdata"
+            ],
+            when(isUbuntu && OS_VERSION_BASE != "jammy", [ "tzdata-legacy" ], []))
+        )))) ^
+
+    set pkgs to
+        when(ARGS["is-aot"],
+            basePkgs,
+            when(ARGS["is-extra"] || isDebian || isUbuntu || isFullAzureLinux,
+                extraPkgs,
+                standardPkgs)) ^
+
+    set prefixPkgs to when(isDistrolessAzureLinux && !isAzureLinux3,
+        [
+            dotnetDepsComment
+        ],
+        [
+            caCertsPkg,
+            "",
+            dotnetDepsComment
+        ]) ^
+
+    set suffixPkgs to when(isAlpine && dotnetVersion != "8.0", ["", "# manually update zlib from alpine base image", zlibPkg], []) ^
+
+    set pkgs to cat(prefixPkgs, pkgs, suffixPkgs) ^
+
+    set pkgMgrOpts to when(len(ARGS["staging-dir"]) > 0,
+        cat(" --installroot ", ARGS["staging-dir"]),
+        "") ^
+    set pkgMgrOpts to when(isDistrolessAzureLinux && isAzureLinux3,
+        cat(" --releasever=", OS_VERSION_NUMBER, pkgMgrOpts),
+        pkgMgrOpts) ^
+    set pkgMgrOpts to when(isDistrolessAzureLinux && !isAzureLinux3 && len(ARGS["staging-dir"]) > 0,
+        cat(" --use-host-config", pkgMgrOpts),
+        pkgMgrOpts)
+
+}}{{InsertTemplate("Dockerfile.linux.install-pkgs",
+    [
+        "pkgs": pkgs,
+        "pkg-mgr": when(isDistrolessAzureLinux && !isAzureLinux3, "dnf", when(isDistrolessAzureLinux, "tdnf", "")),
+        "pkg-mgr-opts": pkgMgrOpts,
+        "upgrade-pkgs": when(OS_VERSION = "azurelinux4.0", [caCertsPkg], [])
+    ])}}

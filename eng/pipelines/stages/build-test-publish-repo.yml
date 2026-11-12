@@ -1,0 +1,58 @@
+# A simple wrapper around the build-and-test and publish templates so that both
+# templates can easily be called at the same time with the same parameters.
+
+# Any repo-specific overrides should be added in the individual build/publish
+# templates themselves, not in this file.
+
+parameters:
+- name: publishConfig
+  type: object
+
+- name: internalProjectName
+  type: string
+
+- name: publicProjectName
+  type: string
+
+- name: sourceBuildPipelineRunId
+  type: string
+  default: $(Build.BuildId)
+
+- name: versionsRepoRef
+  type: string
+  default: ""
+
+- name: noCache
+  type: boolean
+  default: false
+
+- name: poolPriority
+  type: string
+  default: ""
+
+# Additional service connections needed by this pipeline that are not included
+# in the publishConfig.
+- name: additionalServiceConnections
+  type: object
+  default: []
+
+stages:
+- template: /eng/pipelines/stages/build-and-test.yml@self
+  parameters:
+    publishConfig: ${{ parameters.publishConfig }}
+    internalProjectName: ${{ parameters.internalProjectName }}
+    publicProjectName: ${{ parameters.publicProjectName }}
+    versionsRepoRef: ${{ parameters.versionsRepoRef }}
+    sourceBuildPipelineRunId: ${{ parameters.sourceBuildPipelineRunId }}
+    noCache: ${{ parameters.noCache }}
+    poolPriority: ${{ parameters.poolPriority }}
+
+- template: /eng/pipelines/stages/publish.yml@self
+  parameters:
+    publishConfig: ${{ parameters.publishConfig }}
+    internalProjectName: ${{ parameters.internalProjectName }}
+    publicProjectName: ${{ parameters.publicProjectName }}
+    versionsRepoRef: ${{ parameters.versionsRepoRef }}
+    sourceBuildPipelineRunId: ${{ parameters.sourceBuildPipelineRunId }}
+    additionalServiceConnections: ${{ parameters.additionalServiceConnections }}
+    poolPriority: ${{ parameters.poolPriority }}

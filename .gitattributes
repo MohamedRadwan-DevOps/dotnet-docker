@@ -59,6 +59,7 @@
 *.vbproj text=auto
 *.fsproj text=auto
 *.dbproj text=auto
+*.slnx text=auto
 *.sln text=auto eol=crlf
 
 # Set linguist language for .h files explicitly based on
@@ -78,3 +79,5 @@ src/coreclr/tests/src/JIT/Performance/CodeQuality/BenchmarksGame/reverse-complem
 src/coreclr/tests/src/JIT/Performance/CodeQuality/BenchmarksGame/k-nucleotide/knucleotide-input.txt text eol=lf
 src/coreclr/tests/src/JIT/Performance/CodeQuality/BenchmarksGame/k-nucleotide/knucleotide-input-big.txt text eol=lf
 src/coreclr/tests/src/performance/Scenario/JitBench/Resources/word2vecnet.patch text eol=lf
+
+tests/Microsoft.DotNet.Docker.Tests/Baselines/** linguist-generated

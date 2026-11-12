@@ -1,137 +1,203 @@
-# Featured Tags
+# .NET SDK
 
-* `3.1` (LTS/Current)
-  * `docker pull mcr.microsoft.com/dotnet/core/sdk:3.1`
+## Featured Tags
 
-# About This Image
+* `11.0` (Standard Support)
+  * `docker pull mcr.microsoft.com/dotnet/sdk:11.0`
+* `10.0` (Long-Term Support)
+  * `docker pull mcr.microsoft.com/dotnet/sdk:10.0`
 
-This image contains the .NET Core SDK which is comprised of three parts:
+## About
 
-1. .NET Core CLI
-1. .NET Core
+This image contains the .NET SDK which is comprised of three parts:
+
+1. .NET CLI
+1. .NET runtime
 1. ASP.NET Core
 
 Use this image for your development process (developing, building and testing applications).
 
-Watch [dotnet/announcements](https://github.com/dotnet/announcements/labels/Docker) for Docker-related .NET announcements.
+Watch [discussions](https://github.com/dotnet/dotnet-docker/discussions/categories/announcements) for Docker-related .NET announcements.
 
-# How to Use the Image
+## Usage
 
-The [.NET Core Docker samples](https://github.com/dotnet/dotnet-docker/blob/master/samples/README.md) show various ways to use .NET Core and Docker together. See [Building Docker Images for .NET Core Applications](https://docs.microsoft.com/dotnet/core/docker/building-net-docker-images) to learn more.
+The [.NET Docker samples](https://github.com/dotnet/dotnet-docker/blob/main/samples/README.md) show various ways to use .NET and Docker together. See [Introduction to .NET and Docker](https://learn.microsoft.com/dotnet/core/docker/introduction) to learn more.
 
-## Building .NET Core Apps with Docker
+### Building .NET Apps with Docker
 
-* [.NET Core Docker Sample](https://github.com/dotnet/dotnet-docker/blob/master/samples/dotnetapp/README.md) - This [sample](https://github.com/dotnet/dotnet-docker/blob/master/samples/dotnetapp/Dockerfile) builds, tests, and runs the sample. It includes and builds multiple projects.
-* [ASP.NET Core Docker Sample](https://github.com/dotnet/dotnet-docker/blob/master/samples/aspnetapp/README.md) - This [sample](https://github.com/dotnet/dotnet-docker/blob/master/samples/aspnetapp/Dockerfile) demonstrates using Docker with an ASP.NET Core Web App.
+* [.NET Docker Sample](https://github.com/dotnet/dotnet-docker/blob/main/samples/MultiProjectApp/README.md) - This [sample](https://github.com/dotnet/dotnet-docker/blob/main/samples/MultiProjectApp/Dockerfile) builds, tests, and runs the sample. It includes and builds multiple projects.
+* [ASP.NET Core Docker Sample](https://github.com/dotnet/dotnet-docker/blob/main/samples/AspNetCoreRazorApp/README.md) - This [sample](https://github.com/dotnet/dotnet-docker/blob/main/samples/AspNetCoreRazorApp/Dockerfile) demonstrates using Docker with an ASP.NET Core Web App.
 
-## Develop .NET Core Apps in a Container
+### Develop .NET Apps in a Container
 
-* [Develop .NET Core Applications](https://github.com/dotnet/dotnet-docker/blob/master/samples/dotnetapp/dotnet-docker-dev-in-container.md) - This sample shows how to develop, build and test .NET Core applications with Docker without the need to install the .NET Core SDK.
-* [Develop ASP.NET Core Applications](https://github.com/dotnet/dotnet-docker/blob/master/samples/aspnetapp/aspnet-docker-dev-in-container.md) - This sample shows how to develop and test ASP.NET Core applications with Docker without the need to install the .NET Core SDK.
+The following samples show how to develop, build and test .NET applications with Docker without the need to install the .NET SDK.
 
-# Related Repos
+* [Build .NET Applications with SDK Container](https://github.com/dotnet/dotnet-docker/blob/main/samples/build-in-sdk-container.md)
+* [Test .NET Applications with SDK Container](https://github.com/dotnet/dotnet-docker/blob/main/samples/run-tests-in-sdk-container.md)
+* [Run .NET Applications with SDK Container](https://github.com/dotnet/dotnet-docker/blob/main/samples/run-in-sdk-container.md)
 
-.NET Core 2.1/3.1:
+## Image Variants
 
-* [dotnet/core](https://hub.docker.com/_/microsoft-dotnet-core/): .NET Core
-* [dotnet/core/aspnet](https://hub.docker.com/_/microsoft-dotnet-core-aspnet/): ASP.NET Core Runtime
-* [dotnet/core/runtime](https://hub.docker.com/_/microsoft-dotnet-core-runtime/): .NET Core Runtime
-* [dotnet/core/runtime-deps](https://hub.docker.com/_/microsoft-dotnet-core-runtime-deps/): .NET Core Runtime Dependencies
-* [dotnet/core/samples](https://hub.docker.com/_/microsoft-dotnet-core-samples/): .NET Core Samples
-* [dotnet/core-nightly](https://hub.docker.com/_/microsoft-dotnet-core-nightly/): .NET Core (Preview)
+.NET container images have several variants that offer different combinations of flexibility and deployment size.
+The [Image Variants documentation](https://github.com/dotnet/dotnet-docker/blob/main/documentation/image-variants.md) contains a summary of the image variants and their use-cases.
 
-.NET 5.0+:
+## Related Repositories
 
-* [dotnet](https://hub.docker.com/_/microsoft-dotnet/): .NET
-* [dotnet/sdk](https://hub.docker.com/_/microsoft-dotnet-sdk/): .NET SDK
-* [dotnet/nightly](https://hub.docker.com/_/microsoft-dotnet-nightly/): .NET (Preview)
+.NET:
+
+* [dotnet](https://github.com/dotnet/dotnet-docker/blob/main/README.md): .NET
+* [dotnet/aspnet](https://github.com/dotnet/dotnet-docker/blob/main/README.aspnet.md): ASP.NET Core Runtime
+* [dotnet/runtime](https://github.com/dotnet/dotnet-docker/blob/main/README.runtime.md): .NET Runtime
+* [dotnet/runtime-deps](https://github.com/dotnet/dotnet-docker/blob/main/README.runtime-deps.md): .NET Runtime Dependencies
+* [dotnet/monitor](https://github.com/dotnet/dotnet-docker/blob/main/README.monitor.md): .NET Monitor Tool
+* [dotnet/nightly/sdk](https://github.com/dotnet/dotnet-docker/blob/nightly/README.sdk.md): .NET SDK (Preview)
+* [dotnet/samples](https://github.com/dotnet/dotnet-docker/blob/main/README.samples.md): .NET Samples
 
 .NET Framework:
 
-* [dotnet/framework](https://hub.docker.com/_/microsoft-dotnet-framework/): .NET Framework, ASP.NET and WCF
-* [dotnet/framework/samples](https://hub.docker.com/_/microsoft-dotnet-framework-samples/): .NET Framework, ASP.NET and WCF Samples
+* [dotnet/framework](https://github.com/microsoft/dotnet-framework-docker/blob/main/README.md): .NET Framework, ASP.NET and WCF
+* [dotnet/framework/samples](https://github.com/microsoft/dotnet-framework-docker/blob/main/README.samples.md): .NET Framework, ASP.NET and WCF Samples
 
-# Full Tag Listing
+## Full Tag Listing
 
-## Linux amd64 Tags
+### Linux amd64 Tags
+
 Tags | Dockerfile | OS Version
------------| -------------| -------------
-3.1.402-buster, 3.1-buster, 3.1.402, 3.1, latest | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/3.1/buster/amd64/Dockerfile) | Debian 10
-3.1.402-alpine3.12, 3.1-alpine3.12, 3.1-alpine | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/3.1/alpine3.12/amd64/Dockerfile) | Alpine 3.12
-3.1.402-focal, 3.1-focal | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/3.1/focal/amd64/Dockerfile) | Ubuntu 20.04
-3.1.402-bionic, 3.1-bionic | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/3.1/bionic/amd64/Dockerfile) | Ubuntu 18.04
-2.1.810-stretch, 2.1-stretch, 2.1.810, 2.1 | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/2.1/stretch/amd64/Dockerfile) | Debian 9
-2.1.810-alpine3.12, 2.1-alpine3.12, 2.1-alpine | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/2.1/alpine3.12/amd64/Dockerfile) | Alpine 3.12
-2.1.810-focal, 2.1-focal | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/2.1/focal/amd64/Dockerfile) | Ubuntu 20.04
-2.1.810-bionic, 2.1-bionic | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/2.1/bionic/amd64/Dockerfile) | Ubuntu 18.04
+---- | ---------- | ----------
+11.0.100-resolute-amd64, 11.0-resolute-amd64, 11.0.100-resolute, 11.0-resolute, 11.0.100, 11.0, latest | [Dockerfile](src/sdk/11.0/resolute/amd64/Dockerfile) | Ubuntu 26.04
+11.0.100-resolute-aot-amd64, 11.0-resolute-aot-amd64, 11.0.100-resolute-aot, 11.0-resolute-aot, 11.0.100-aot, 11.0-aot | [Dockerfile](src/sdk/11.0/resolute-aot/amd64/Dockerfile) | Ubuntu 26.04
+11.0.100-alpine3.24-amd64, 11.0-alpine3.24-amd64, 11.0-alpine-amd64, 11.0.100-alpine3.24, 11.0-alpine3.24, 11.0-alpine | [Dockerfile](src/sdk/11.0/alpine3.24/amd64/Dockerfile) | Alpine 3.24
+11.0.100-alpine3.24-aot-amd64, 11.0-alpine3.24-aot-amd64, 11.0-alpine-aot-amd64, 11.0.100-alpine3.24-aot, 11.0-alpine3.24-aot, 11.0-alpine-aot | [Dockerfile](src/sdk/11.0/alpine3.24-aot/amd64/Dockerfile) | Alpine 3.24
+11.0.100-azurelinux3.0-amd64, 11.0-azurelinux3.0-amd64, 11.0.100-azurelinux3.0, 11.0-azurelinux3.0 | [Dockerfile](src/sdk/11.0/azurelinux3.0/amd64/Dockerfile) | Azure Linux 3.0
+11.0.100-azurelinux3.0-aot-amd64, 11.0-azurelinux3.0-aot-amd64, 11.0.100-azurelinux3.0-aot, 11.0-azurelinux3.0-aot | [Dockerfile](src/sdk/11.0/azurelinux3.0-aot/amd64/Dockerfile) | Azure Linux 3.0
+11.0.100-azurelinux4.0-amd64, 11.0-azurelinux4.0-amd64, 11.0.100-azurelinux4.0, 11.0-azurelinux4.0 | [Dockerfile](src/sdk/11.0/azurelinux4.0/amd64/Dockerfile) | Azure Linux 4.0
+11.0.100-azurelinux4.0-aot-amd64, 11.0-azurelinux4.0-aot-amd64, 11.0.100-azurelinux4.0-aot, 11.0-azurelinux4.0-aot | [Dockerfile](src/sdk/11.0/azurelinux4.0-aot/amd64/Dockerfile) | Azure Linux 4.0
+10.0.404-noble-amd64, 10.0-noble-amd64, 10.0.404-noble, 10.0-noble, 10.0.404, 10.0 | [Dockerfile](src/sdk/10.0/noble/amd64/Dockerfile) | Ubuntu 24.04
+10.0.404-noble-aot-amd64, 10.0-noble-aot-amd64, 10.0.404-noble-aot, 10.0-noble-aot, 10.0.404-aot, 10.0-aot | [Dockerfile](src/sdk/10.0/noble-aot/amd64/Dockerfile) | Ubuntu 24.04
+10.0.404-resolute-amd64, 10.0-resolute-amd64, 10.0.404-resolute, 10.0-resolute | [Dockerfile](src/sdk/10.0/resolute/amd64/Dockerfile) | Ubuntu 26.04
+10.0.404-resolute-aot-amd64, 10.0-resolute-aot-amd64, 10.0.404-resolute-aot, 10.0-resolute-aot | [Dockerfile](src/sdk/10.0/resolute-aot/amd64/Dockerfile) | Ubuntu 26.04
+10.0.404-alpine3.24-amd64, 10.0-alpine3.24-amd64, 10.0-alpine-amd64, 10.0.404-alpine3.24, 10.0-alpine3.24, 10.0-alpine | [Dockerfile](src/sdk/10.0/alpine3.24/amd64/Dockerfile) | Alpine 3.24
+10.0.404-alpine3.24-aot-amd64, 10.0-alpine3.24-aot-amd64, 10.0-alpine-aot-amd64, 10.0.404-alpine3.24-aot, 10.0-alpine3.24-aot, 10.0-alpine-aot | [Dockerfile](src/sdk/10.0/alpine3.24-aot/amd64/Dockerfile) | Alpine 3.24
+10.0.404-azurelinux3.0-amd64, 10.0-azurelinux3.0-amd64, 10.0.404-azurelinux3.0, 10.0-azurelinux3.0 | [Dockerfile](src/sdk/10.0/azurelinux3.0/amd64/Dockerfile) | Azure Linux 3.0
+10.0.404-azurelinux3.0-aot-amd64, 10.0-azurelinux3.0-aot-amd64, 10.0.404-azurelinux3.0-aot, 10.0-azurelinux3.0-aot | [Dockerfile](src/sdk/10.0/azurelinux3.0-aot/amd64/Dockerfile) | Azure Linux 3.0
+9.0.321-bookworm-slim-amd64, 9.0-bookworm-slim-amd64, 9.0.321-bookworm-slim, 9.0-bookworm-slim, 9.0.321, 9.0 | [Dockerfile](src/sdk/9.0/bookworm-slim/amd64/Dockerfile) | Debian 12
+9.0.321-alpine3.24-amd64, 9.0-alpine3.24-amd64, 9.0-alpine-amd64, 9.0.321-alpine3.24, 9.0-alpine3.24, 9.0-alpine | [Dockerfile](src/sdk/9.0/alpine3.24/amd64/Dockerfile) | Alpine 3.24
+9.0.321-noble-amd64, 9.0-noble-amd64, 9.0.321-noble, 9.0-noble | [Dockerfile](src/sdk/9.0/noble/amd64/Dockerfile) | Ubuntu 24.04
+9.0.321-azurelinux3.0-amd64, 9.0-azurelinux3.0-amd64, 9.0.321-azurelinux3.0, 9.0-azurelinux3.0 | [Dockerfile](src/sdk/9.0/azurelinux3.0/amd64/Dockerfile) | Azure Linux 3.0
+8.0.428-bookworm-slim-amd64, 8.0-bookworm-slim-amd64, 8.0.428-bookworm-slim, 8.0-bookworm-slim, 8.0.428, 8.0 | [Dockerfile](src/sdk/8.0/bookworm-slim/amd64/Dockerfile) | Debian 12
+8.0.428-alpine3.24-amd64, 8.0-alpine3.24-amd64, 8.0-alpine-amd64, 8.0.428-alpine3.24, 8.0-alpine3.24, 8.0-alpine | [Dockerfile](src/sdk/8.0/alpine3.24/amd64/Dockerfile) | Alpine 3.24
+8.0.428-noble-amd64, 8.0-noble-amd64, 8.0.428-noble, 8.0-noble | [Dockerfile](src/sdk/8.0/noble/amd64/Dockerfile) | Ubuntu 24.04
+8.0.428-jammy-amd64, 8.0-jammy-amd64, 8.0.428-jammy, 8.0-jammy | [Dockerfile](src/sdk/8.0/jammy/amd64/Dockerfile) | Ubuntu 22.04
+8.0.428-azurelinux3.0-amd64, 8.0-azurelinux3.0-amd64, 8.0.428-azurelinux3.0, 8.0-azurelinux3.0 | [Dockerfile](src/sdk/8.0/azurelinux3.0/amd64/Dockerfile) | Azure Linux 3.0
 
-## Linux arm64 Tags
+### Linux arm64 Tags
+
 Tags | Dockerfile | OS Version
------------| -------------| -------------
-3.1.402-buster-arm64v8, 3.1-buster-arm64v8, 3.1.402, 3.1, latest | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/3.1/buster/arm64v8/Dockerfile) | Debian 10
-3.1.402-focal-arm64v8, 3.1-focal-arm64v8 | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/3.1/focal/arm64v8/Dockerfile) | Ubuntu 20.04
-3.1.402-bionic-arm64v8, 3.1-bionic-arm64v8 | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/3.1/bionic/arm64v8/Dockerfile) | Ubuntu 18.04
+---- | ---------- | ----------
+11.0.100-resolute-arm64v8, 11.0-resolute-arm64v8, 11.0.100-resolute, 11.0-resolute, 11.0.100, 11.0, latest | [Dockerfile](src/sdk/11.0/resolute/arm64v8/Dockerfile) | Ubuntu 26.04
+11.0.100-resolute-aot-arm64v8, 11.0-resolute-aot-arm64v8, 11.0.100-resolute-aot, 11.0-resolute-aot, 11.0.100-aot, 11.0-aot | [Dockerfile](src/sdk/11.0/resolute-aot/arm64v8/Dockerfile) | Ubuntu 26.04
+11.0.100-alpine3.24-arm64v8, 11.0-alpine3.24-arm64v8, 11.0-alpine-arm64v8, 11.0.100-alpine3.24, 11.0-alpine3.24, 11.0-alpine | [Dockerfile](src/sdk/11.0/alpine3.24/arm64v8/Dockerfile) | Alpine 3.24
+11.0.100-alpine3.24-aot-arm64v8, 11.0-alpine3.24-aot-arm64v8, 11.0-alpine-aot-arm64v8, 11.0.100-alpine3.24-aot, 11.0-alpine3.24-aot, 11.0-alpine-aot | [Dockerfile](src/sdk/11.0/alpine3.24-aot/arm64v8/Dockerfile) | Alpine 3.24
+11.0.100-azurelinux3.0-arm64v8, 11.0-azurelinux3.0-arm64v8, 11.0.100-azurelinux3.0, 11.0-azurelinux3.0 | [Dockerfile](src/sdk/11.0/azurelinux3.0/arm64v8/Dockerfile) | Azure Linux 3.0
+11.0.100-azurelinux3.0-aot-arm64v8, 11.0-azurelinux3.0-aot-arm64v8, 11.0.100-azurelinux3.0-aot, 11.0-azurelinux3.0-aot | [Dockerfile](src/sdk/11.0/azurelinux3.0-aot/arm64v8/Dockerfile) | Azure Linux 3.0
+11.0.100-azurelinux4.0-arm64v8, 11.0-azurelinux4.0-arm64v8, 11.0.100-azurelinux4.0, 11.0-azurelinux4.0 | [Dockerfile](src/sdk/11.0/azurelinux4.0/arm64v8/Dockerfile) | Azure Linux 4.0
+11.0.100-azurelinux4.0-aot-arm64v8, 11.0-azurelinux4.0-aot-arm64v8, 11.0.100-azurelinux4.0-aot, 11.0-azurelinux4.0-aot | [Dockerfile](src/sdk/11.0/azurelinux4.0-aot/arm64v8/Dockerfile) | Azure Linux 4.0
+10.0.404-noble-arm64v8, 10.0-noble-arm64v8, 10.0.404-noble, 10.0-noble, 10.0.404, 10.0 | [Dockerfile](src/sdk/10.0/noble/arm64v8/Dockerfile) | Ubuntu 24.04
+10.0.404-noble-aot-arm64v8, 10.0-noble-aot-arm64v8, 10.0.404-noble-aot, 10.0-noble-aot, 10.0.404-aot, 10.0-aot | [Dockerfile](src/sdk/10.0/noble-aot/arm64v8/Dockerfile) | Ubuntu 24.04
+10.0.404-resolute-arm64v8, 10.0-resolute-arm64v8, 10.0.404-resolute, 10.0-resolute | [Dockerfile](src/sdk/10.0/resolute/arm64v8/Dockerfile) | Ubuntu 26.04
+10.0.404-resolute-aot-arm64v8, 10.0-resolute-aot-arm64v8, 10.0.404-resolute-aot, 10.0-resolute-aot | [Dockerfile](src/sdk/10.0/resolute-aot/arm64v8/Dockerfile) | Ubuntu 26.04
+10.0.404-alpine3.24-arm64v8, 10.0-alpine3.24-arm64v8, 10.0-alpine-arm64v8, 10.0.404-alpine3.24, 10.0-alpine3.24, 10.0-alpine | [Dockerfile](src/sdk/10.0/alpine3.24/arm64v8/Dockerfile) | Alpine 3.24
+10.0.404-alpine3.24-aot-arm64v8, 10.0-alpine3.24-aot-arm64v8, 10.0-alpine-aot-arm64v8, 10.0.404-alpine3.24-aot, 10.0-alpine3.24-aot, 10.0-alpine-aot | [Dockerfile](src/sdk/10.0/alpine3.24-aot/arm64v8/Dockerfile) | Alpine 3.24
+10.0.404-azurelinux3.0-arm64v8, 10.0-azurelinux3.0-arm64v8, 10.0.404-azurelinux3.0, 10.0-azurelinux3.0 | [Dockerfile](src/sdk/10.0/azurelinux3.0/arm64v8/Dockerfile) | Azure Linux 3.0
+10.0.404-azurelinux3.0-aot-arm64v8, 10.0-azurelinux3.0-aot-arm64v8, 10.0.404-azurelinux3.0-aot, 10.0-azurelinux3.0-aot | [Dockerfile](src/sdk/10.0/azurelinux3.0-aot/arm64v8/Dockerfile) | Azure Linux 3.0
+9.0.321-bookworm-slim-arm64v8, 9.0-bookworm-slim-arm64v8, 9.0.321-bookworm-slim, 9.0-bookworm-slim, 9.0.321, 9.0 | [Dockerfile](src/sdk/9.0/bookworm-slim/arm64v8/Dockerfile) | Debian 12
+9.0.321-alpine3.24-arm64v8, 9.0-alpine3.24-arm64v8, 9.0-alpine-arm64v8, 9.0.321-alpine3.24, 9.0-alpine3.24, 9.0-alpine | [Dockerfile](src/sdk/9.0/alpine3.24/arm64v8/Dockerfile) | Alpine 3.24
+9.0.321-noble-arm64v8, 9.0-noble-arm64v8, 9.0.321-noble, 9.0-noble | [Dockerfile](src/sdk/9.0/noble/arm64v8/Dockerfile) | Ubuntu 24.04
+9.0.321-azurelinux3.0-arm64v8, 9.0-azurelinux3.0-arm64v8, 9.0.321-azurelinux3.0, 9.0-azurelinux3.0 | [Dockerfile](src/sdk/9.0/azurelinux3.0/arm64v8/Dockerfile) | Azure Linux 3.0
+8.0.428-bookworm-slim-arm64v8, 8.0-bookworm-slim-arm64v8, 8.0.428-bookworm-slim, 8.0-bookworm-slim, 8.0.428, 8.0 | [Dockerfile](src/sdk/8.0/bookworm-slim/arm64v8/Dockerfile) | Debian 12
+8.0.428-alpine3.24-arm64v8, 8.0-alpine3.24-arm64v8, 8.0-alpine-arm64v8, 8.0.428-alpine3.24, 8.0-alpine3.24, 8.0-alpine | [Dockerfile](src/sdk/8.0/alpine3.24/arm64v8/Dockerfile) | Alpine 3.24
+8.0.428-noble-arm64v8, 8.0-noble-arm64v8, 8.0.428-noble, 8.0-noble | [Dockerfile](src/sdk/8.0/noble/arm64v8/Dockerfile) | Ubuntu 24.04
+8.0.428-jammy-arm64v8, 8.0-jammy-arm64v8, 8.0.428-jammy, 8.0-jammy | [Dockerfile](src/sdk/8.0/jammy/arm64v8/Dockerfile) | Ubuntu 22.04
+8.0.428-azurelinux3.0-arm64v8, 8.0-azurelinux3.0-arm64v8, 8.0.428-azurelinux3.0, 8.0-azurelinux3.0 | [Dockerfile](src/sdk/8.0/azurelinux3.0/arm64v8/Dockerfile) | Azure Linux 3.0
 
-## Linux arm32 Tags
+### Linux arm32 Tags
+
 Tags | Dockerfile | OS Version
------------| -------------| -------------
-3.1.402-buster-arm32v7, 3.1-buster-arm32v7, 3.1.402, 3.1, latest | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/3.1/buster/arm32v7/Dockerfile) | Debian 10
-3.1.402-focal-arm32v7, 3.1-focal-arm32v7 | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/3.1/focal/arm32v7/Dockerfile) | Ubuntu 20.04
-3.1.402-bionic-arm32v7, 3.1-bionic-arm32v7 | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/3.1/bionic/arm32v7/Dockerfile) | Ubuntu 18.04
-2.1.810-stretch-arm32v7, 2.1-stretch-arm32v7, 2.1.810, 2.1 | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/2.1/stretch/arm32v7/Dockerfile) | Debian 9
-2.1.810-focal-arm32v7, 2.1-focal-arm32v7 | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/2.1/focal/arm32v7/Dockerfile) | Ubuntu 20.04
-2.1.810-bionic-arm32v7, 2.1-bionic-arm32v7 | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/2.1/bionic/arm32v7/Dockerfile) | Ubuntu 18.04
+---- | ---------- | ----------
+11.0.100-resolute-arm32v7, 11.0-resolute-arm32v7, 11.0.100-resolute, 11.0-resolute, 11.0.100, 11.0, latest | [Dockerfile](src/sdk/11.0/resolute/arm32v7/Dockerfile) | Ubuntu 26.04
+11.0.100-alpine3.24-arm32v7, 11.0-alpine3.24-arm32v7, 11.0-alpine-arm32v7, 11.0.100-alpine3.24, 11.0-alpine3.24, 11.0-alpine | [Dockerfile](src/sdk/11.0/alpine3.24/arm32v7/Dockerfile) | Alpine 3.24
+10.0.404-noble-arm32v7, 10.0-noble-arm32v7, 10.0.404-noble, 10.0-noble, 10.0.404, 10.0 | [Dockerfile](src/sdk/10.0/noble/arm32v7/Dockerfile) | Ubuntu 24.04
+10.0.404-resolute-arm32v7, 10.0-resolute-arm32v7, 10.0.404-resolute, 10.0-resolute | [Dockerfile](src/sdk/10.0/resolute/arm32v7/Dockerfile) | Ubuntu 26.04
+10.0.404-alpine3.24-arm32v7, 10.0-alpine3.24-arm32v7, 10.0-alpine-arm32v7, 10.0.404-alpine3.24, 10.0-alpine3.24, 10.0-alpine | [Dockerfile](src/sdk/10.0/alpine3.24/arm32v7/Dockerfile) | Alpine 3.24
+9.0.321-bookworm-slim-arm32v7, 9.0-bookworm-slim-arm32v7, 9.0.321-bookworm-slim, 9.0-bookworm-slim, 9.0.321, 9.0 | [Dockerfile](src/sdk/9.0/bookworm-slim/arm32v7/Dockerfile) | Debian 12
+9.0.321-alpine3.24-arm32v7, 9.0-alpine3.24-arm32v7, 9.0-alpine-arm32v7, 9.0.321-alpine3.24, 9.0-alpine3.24, 9.0-alpine | [Dockerfile](src/sdk/9.0/alpine3.24/arm32v7/Dockerfile) | Alpine 3.24
+9.0.321-noble-arm32v7, 9.0-noble-arm32v7, 9.0.321-noble, 9.0-noble | [Dockerfile](src/sdk/9.0/noble/arm32v7/Dockerfile) | Ubuntu 24.04
+8.0.428-bookworm-slim-arm32v7, 8.0-bookworm-slim-arm32v7, 8.0.428-bookworm-slim, 8.0-bookworm-slim, 8.0.428, 8.0 | [Dockerfile](src/sdk/8.0/bookworm-slim/arm32v7/Dockerfile) | Debian 12
+8.0.428-alpine3.24-arm32v7, 8.0-alpine3.24-arm32v7, 8.0-alpine-arm32v7, 8.0.428-alpine3.24, 8.0-alpine3.24, 8.0-alpine | [Dockerfile](src/sdk/8.0/alpine3.24/arm32v7/Dockerfile) | Alpine 3.24
+8.0.428-jammy-arm32v7, 8.0-jammy-arm32v7, 8.0.428-jammy, 8.0-jammy | [Dockerfile](src/sdk/8.0/jammy/arm32v7/Dockerfile) | Ubuntu 22.04
 
-## Windows Server, version 2004 amd64 Tags
-Tag | Dockerfile
----------| ---------------
-3.1.402-nanoserver-2004, 3.1-nanoserver-2004, 3.1.402, 3.1, latest | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/3.1/nanoserver-2004/amd64/Dockerfile)
-2.1.810-nanoserver-2004, 2.1-nanoserver-2004, 2.1.810, 2.1 | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/2.1/nanoserver-2004/amd64/Dockerfile)
+### Windows amd64 Tags
 
-## Windows Server, version 1909 amd64 Tags
-Tag | Dockerfile
----------| ---------------
-3.1.402-nanoserver-1909, 3.1-nanoserver-1909, 3.1.402, 3.1, latest | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/3.1/nanoserver-1909/amd64/Dockerfile)
-2.1.810-nanoserver-1909, 2.1-nanoserver-1909, 2.1.810, 2.1 | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/2.1/nanoserver-1909/amd64/Dockerfile)
+Tags | Dockerfile | OS Version
+---- | ---------- | ----------
+11.0.100-nanoserver-ltsc2025, 11.0-nanoserver-ltsc2025 | [Dockerfile](src/sdk/11.0/nanoserver-ltsc2025/amd64/Dockerfile) | Nano Server 2025
+11.0.100-windowsservercore-ltsc2025, 11.0-windowsservercore-ltsc2025 | [Dockerfile](src/sdk/11.0/windowsservercore-ltsc2025/amd64/Dockerfile) | Windows Server Core 2025
+10.0.404-nanoserver-ltsc2025, 10.0-nanoserver-ltsc2025 | [Dockerfile](src/sdk/10.0/nanoserver-ltsc2025/amd64/Dockerfile) | Nano Server 2025
+10.0.404-windowsservercore-ltsc2025, 10.0-windowsservercore-ltsc2025 | [Dockerfile](src/sdk/10.0/windowsservercore-ltsc2025/amd64/Dockerfile) | Windows Server Core 2025
+10.0.404-nanoserver-ltsc2022, 10.0-nanoserver-ltsc2022 | [Dockerfile](src/sdk/10.0/nanoserver-ltsc2022/amd64/Dockerfile) | Nano Server 2022
+10.0.404-windowsservercore-ltsc2022, 10.0-windowsservercore-ltsc2022 | [Dockerfile](src/sdk/10.0/windowsservercore-ltsc2022/amd64/Dockerfile) | Windows Server Core 2022
+9.0.321-nanoserver-ltsc2025, 9.0-nanoserver-ltsc2025 | [Dockerfile](src/sdk/9.0/nanoserver-ltsc2025/amd64/Dockerfile) | Nano Server 2025
+9.0.321-windowsservercore-ltsc2025, 9.0-windowsservercore-ltsc2025 | [Dockerfile](src/sdk/9.0/windowsservercore-ltsc2025/amd64/Dockerfile) | Windows Server Core 2025
+9.0.321-nanoserver-ltsc2022, 9.0-nanoserver-ltsc2022 | [Dockerfile](src/sdk/9.0/nanoserver-ltsc2022/amd64/Dockerfile) | Nano Server 2022
+9.0.321-windowsservercore-ltsc2022, 9.0-windowsservercore-ltsc2022 | [Dockerfile](src/sdk/9.0/windowsservercore-ltsc2022/amd64/Dockerfile) | Windows Server Core 2022
+9.0.321-nanoserver-1809, 9.0-nanoserver-1809 | [Dockerfile](src/sdk/9.0/nanoserver-1809/amd64/Dockerfile) | Nano Server, version 1809
+9.0.321-windowsservercore-ltsc2019, 9.0-windowsservercore-ltsc2019 | [Dockerfile](src/sdk/9.0/windowsservercore-ltsc2019/amd64/Dockerfile) | Windows Server Core 2019
+8.0.428-nanoserver-ltsc2025, 8.0-nanoserver-ltsc2025 | [Dockerfile](src/sdk/8.0/nanoserver-ltsc2025/amd64/Dockerfile) | Nano Server 2025
+8.0.428-windowsservercore-ltsc2025, 8.0-windowsservercore-ltsc2025 | [Dockerfile](src/sdk/8.0/windowsservercore-ltsc2025/amd64/Dockerfile) | Windows Server Core 2025
+8.0.428-nanoserver-ltsc2022, 8.0-nanoserver-ltsc2022 | [Dockerfile](src/sdk/8.0/nanoserver-ltsc2022/amd64/Dockerfile) | Nano Server 2022
+8.0.428-windowsservercore-ltsc2022, 8.0-windowsservercore-ltsc2022 | [Dockerfile](src/sdk/8.0/windowsservercore-ltsc2022/amd64/Dockerfile) | Windows Server Core 2022
+8.0.428-nanoserver-1809, 8.0-nanoserver-1809 | [Dockerfile](src/sdk/8.0/nanoserver-1809/amd64/Dockerfile) | Nano Server, version 1809
+8.0.428-windowsservercore-ltsc2019, 8.0-windowsservercore-ltsc2019 | [Dockerfile](src/sdk/8.0/windowsservercore-ltsc2019/amd64/Dockerfile) | Windows Server Core 2019
 
-## Windows Server, version 1903 amd64 Tags
-Tag | Dockerfile
----------| ---------------
-3.1.402-nanoserver-1903, 3.1-nanoserver-1903, 3.1.402, 3.1, latest | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/3.1/nanoserver-1903/amd64/Dockerfile)
-2.1.810-nanoserver-1903, 2.1-nanoserver-1903, 2.1.810, 2.1 | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/2.1/nanoserver-1903/amd64/Dockerfile)
+<!--End of generated tags-->
 
-## Windows Server 2019 amd64 Tags
-Tag | Dockerfile
----------| ---------------
-3.1.402-nanoserver-1809, 3.1-nanoserver-1809, 3.1.402, 3.1, latest | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/3.1/nanoserver-1809/amd64/Dockerfile)
-2.1.810-nanoserver-1809, 2.1-nanoserver-1809, 2.1.810, 2.1 | [Dockerfile](https://github.com/dotnet/dotnet-docker/blob/master/src/sdk/2.1/nanoserver-1809/amd64/Dockerfile)
+*Tags not listed in the table above are not supported. See the [Supported Tags Policy](https://github.com/dotnet/dotnet-docker/blob/main/documentation/supported-tags.md). See the [full list of tags](https://mcr.microsoft.com/v2/dotnet/sdk/tags/list) for all supported and unsupported tags.*
 
-You can retrieve a list of all available tags for dotnet/core/sdk at https://mcr.microsoft.com/v2/dotnet/core/sdk/tags/list.
+## Support
 
-# Support
+### Lifecycle
 
-See [Microsoft Support for .NET Core](https://github.com/dotnet/core/blob/master/microsoft-support.md) for the support lifecycle.
+* [Microsoft Support for .NET](https://github.com/dotnet/core/blob/main/support.md)
+* [Supported Container Platforms Policy](https://github.com/dotnet/dotnet-docker/blob/main/documentation/supported-platforms.md)
+* [Supported Tags Policy](https://github.com/dotnet/dotnet-docker/blob/main/documentation/supported-tags.md)
 
-# Image Update Policy
+### Image Update Policy
 
-* We update the supported .NET Core images within 12 hours of any updates to their base images (e.g. debian:buster-slim, windows/nanoserver:1909, buildpack-deps:bionic-scm, etc.).
-* We publish .NET Core images as part of releasing new versions of .NET Core including major/minor and servicing.
+* **Base Image Updates:** Images are re-built within 12 hours of any updates to their base images (e.g. debian:bookworm-slim, windows/nanoserver:ltsc2022, etc.).
+* **.NET Releases:** Images are re-built as part of releasing new .NET versions. This includes new major versions, minor versions, and servicing releases.
+* **Critical CVEs:** Images are re-built to pick up critical CVE fixes as described by the CVE Update Policy below.
+* **Monthly Re-builds:** Images are re-built monthly, typically on the second Tuesday of the month, in order to pick up lower-severity CVE fixes.
+* **Out-Of-Band Updates:** Images can sometimes be re-built when out-of-band updates are necessary to address critical issues. If this happens, new fixed version tags will be updated according to the [Fixed version tags documentation](https://github.com/dotnet/dotnet-docker/blob/main/documentation/supported-tags.md#fixed-version-tags).
 
-# Feedback
+#### CVE Update Policy
 
-* [File a .NET Core Docker issue](https://github.com/dotnet/dotnet-docker/issues)
-* [File a .NET Core issue](https://github.com/dotnet/core/issues)
-* [File an ASP.NET Core issue](https://github.com/aspnet/home/issues)
-* [File an issue for other .NET components](https://github.com/dotnet/core/blob/master/Documentation/core-repos.md)
-* [File a Visual Studio Docker Tools issue](https://github.com/microsoft/dockertools/issues)
-* [File a Microsoft Container Registry (MCR) issue](https://github.com/microsoft/containerregistry/issues)
-* [Ask on Stack Overflow](https://stackoverflow.com/questions/tagged/.net-core)
+.NET container images are regularly monitored for the presence of CVEs. A given image will be rebuilt to pick up fixes for a CVE when:
+
+* We detect the image contains a CVE with a [CVSS](https://nvd.nist.gov/vuln-metrics/cvss) score of "Critical"
+* **AND** the CVE is in a package that is added in our Dockerfile layers (meaning the CVE is in a package we explicitly install or any transitive dependencies of those packages)
+* **AND** there is a CVE fix for the package available in the affected base image's package repository.
+
+Please refer to the [Security Policy](https://github.com/dotnet/dotnet-docker/blob/main/SECURITY.md) and [Container Vulnerability Workflow](https://github.com/dotnet/dotnet-docker/blob/main/documentation/vulnerability-reporting.md) for more detail about what to do when a CVE is encountered in a .NET image.
+
+### Feedback
+
+* [File an issue](https://github.com/dotnet/dotnet-docker/issues/new/choose)
 * [Contact Microsoft Support](https://support.microsoft.com/contactus/)
 
-# License
+## License
 
 * Legal Notice: [Container License Information](https://aka.ms/mcr/osslegalnotice)
-* [.NET Core license](https://github.com/dotnet/dotnet-docker/blob/master/LICENSE)
-* [Discover licensing for Linux image contents](https://github.com/dotnet/dotnet-docker/blob/master/documentation/image-artifact-details.md)
-* [Windows Nano Server license](https://hub.docker.com/_/microsoft-windows-nanoserver/) (only applies to Windows containers)
-* [Pricing and licensing for Windows Server 2019](https://www.microsoft.com/cloud-platform/windows-server-pricing)
+* [.NET license](https://github.com/dotnet/dotnet-docker/blob/main/LICENSE)
+* [Discover licensing for Linux image contents](https://github.com/dotnet/dotnet-docker/blob/main/documentation/image-artifact-details.md)
+* [Windows base image license](https://learn.microsoft.com/virtualization/windowscontainers/images-eula) (only applies to Windows containers)
+* [Pricing and licensing for Windows Server](https://www.microsoft.com/windows-server/pricing)

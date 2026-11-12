@@ -1,87 +1,87 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using Xunit;
+using FluentAssertions;
+using FluentAssertions.Execution;
 
-namespace Microsoft.DotNet.Docker.Tests
+#nullable enable
+namespace Microsoft.DotNet.Docker.Tests;
+
+public record EnvironmentVariableInfo
 {
-    public class EnvironmentVariableInfo
+    public bool AllowAnyValue { get; init; }
+    public string? ExpectedValue { get; init; }
+    public string Name { get; init; }
+    public bool IsProductVersion { get; init; }
+
+    /// <summary>
+    /// When true, the variable is expected to NOT be set on the image.
+    /// </summary>
+    public bool ShouldNotExist { get; init; }
+
+    private EnvironmentVariableInfo(string name) => Name = name;
+
+    /// <summary>
+    /// Requires the named environment variable to be set to <paramref name="expectedValue"/>.
+    /// </summary>
+    public static EnvironmentVariableInfo Require(string name, string expectedValue) =>
+        new(name) { ExpectedValue = expectedValue };
+
+    /// <summary>
+    /// Requires the named environment variable to be set to any non-empty value.
+    /// </summary>
+    public static EnvironmentVariableInfo Require(string name) =>
+        new(name) { AllowAnyValue = true };
+
+    /// <summary>
+    /// Requires the named environment variable to NOT be set on the image.
+    /// </summary>
+    public static EnvironmentVariableInfo Forbid(string name) =>
+        new(name) { ShouldNotExist = true };
+
+    public static void Validate(
+        IEnumerable<EnvironmentVariableInfo> expectedVariables,
+        string imageName,
+        DockerHelper dockerHelper)
     {
-        public bool AllowAnyValue { get; private set; }
-        public string ExpectedValue { get; private set; }
-        public string Name { get; private set; }
+        IDictionary<string, string> environmentVariables = dockerHelper.GetEnvironmentVariables(imageName);
 
-        public EnvironmentVariableInfo(string name, string expectedValue)
+        using (new AssertionScope())
         {
-            Name = name;
-            ExpectedValue = expectedValue;
-        }
-
-        public EnvironmentVariableInfo(string name, bool allowAnyValue)
-        {
-            Name = name;
-            AllowAnyValue = allowAnyValue;
-        }
-
-        public static void Validate(
-            IEnumerable<EnvironmentVariableInfo> variables,
-            DotNetImageType imageType,
-            ProductImageData imageData,
-            DockerHelper dockerHelper)
-        {
-            const char delimiter = '|';
-            IEnumerable<string> echoParts;
-            string invokeCommand;
-            char delimiterEscape;
-
-            if (DockerHelper.IsLinuxContainerModeEnabled)
+            foreach (EnvironmentVariableInfo variable in expectedVariables)
             {
-                echoParts = variables.Select(envVar => $"${envVar.Name}");
-                invokeCommand = $"/bin/sh -c";
-                delimiterEscape = '\\';
-            }
-            else
-            {
-                echoParts = variables.Select(envVar => $"%{envVar.Name}%");
-                invokeCommand = $"CMD /S /C";
-                delimiterEscape = '^';
-            }
-
-            string combinedValues = dockerHelper.Run(
-                image: imageData.GetImage(imageType, dockerHelper),
-                name: imageData.GetIdentifier($"env"),
-                command: $"{invokeCommand} \"echo {string.Join($"{delimiterEscape}{delimiter}", echoParts)}\"");
-
-            string[] values = combinedValues.Split(delimiter);
-            Assert.Equal(variables.Count(), values.Count());
-
-            for (int i = 0; i < values.Count(); i++)
-            {
-                EnvironmentVariableInfo variable = variables.ElementAt(i);
-
-                string actualValue;
-                // Process unset variables in Windows
-                if (!DockerHelper.IsLinuxContainerModeEnabled
-                    && string.Equals(values[i], $"%{variable.Name}%", StringComparison.Ordinal))
+                if (variable.ShouldNotExist)
                 {
-                    actualValue = string.Empty;
+                    environmentVariables.Should().NotContainKey(
+                        variable.Name,
+                        because: $"{imageName} should not have the environment variable '{variable.Name}' defined");
+                    continue;
                 }
-                else
-                {
-                    actualValue = values[i];
-                }
+
+                string environmentVariable = environmentVariables.Should()
+                    .ContainKey(
+                        variable.Name,
+                        because: $"{imageName} should have the environment variable '{variable.Name}' defined")
+                    .WhoseValue;
 
                 if (variable.AllowAnyValue)
                 {
-                    Assert.NotEmpty(actualValue);
+                    environmentVariable.Should().NotBeNullOrEmpty(
+                        because: $"environment variable {variable.Name} is allowed to have any value");
                 }
                 else
                 {
-                    Assert.Equal(variable.ExpectedValue, actualValue);
+                    // If we're validating a product version environment variable for a stable build
+                    // we need to trim off the "servicing" or "rtm" part of the version value.
+                    if (variable.IsProductVersion && Config.IsInternal)
+                    {
+                        environmentVariable = ImageVersion.TrimBuildVersionForRelease(environmentVariable);
+                    }
+
+                    environmentVariable.Should().Be(variable.ExpectedValue,
+                        because: $"{imageName} should have the environment variable "
+                            + $"'{variable.Name}' set to '{variable.ExpectedValue}'");
                 }
             }
         }

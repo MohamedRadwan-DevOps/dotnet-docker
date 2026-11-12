@@ -1,0 +1,45 @@
+{{
+    _ ARGS:
+        pkgs: list of packages to remove
+        pkg-mgr (optional): package manager to use
+        pkg-mgr-opts (optional): additional options to pass to the package manager
+        noninteractive (optional): whether to use noninteractive mode
+        no-clean (optional): skip package manager cleanup after install ^
+
+    set isAlpine to find(OS_VERSION, "alpine") >= 0 ^
+    set isAzureLinux to find(OS_VERSION, "azurelinux") >= 0 ^
+    set isAzureLinux3 to defined(match(OS_VERSION, "^azurelinux3")) ^
+
+    set isDnf to ARGS["pkg-mgr"] = "dnf" || (isAzureLinux && !isAzureLinux3 && ARGS["pkg-mgr"] != "tdnf") ^
+    set isTdnf to ARGS["pkg-mgr"] = "tdnf" || (!isDnf && isAzureLinux) ^
+    set isApk to ARGS["pkg-mgr"] = "apk" || isAlpine ^
+    set isApt to ARGS["pkg-mgr"] = "apt-get" || (!isDnf && !isTdnf && !isApk) ^
+
+    set removeCmd to
+        when(isApk,
+            "apk del",
+        when(isDnf,
+            "dnf remove -y",
+        when(isTdnf,
+            "tdnf autoremove -y",
+        when (ARGS["noninteractive"],
+            "DEBIAN_FRONTEND=noninteractive apt-get remove -y",
+            "apt-get remove -y"
+        )))) ^
+
+    set cleanCmd to
+        when(isApk,
+            "apk del",
+        when(isDnf,
+            "dnf clean all",
+        when(isTdnf,
+            "tdnf clean all",
+            "apt-get autoremove \
+&& rm -rf /var/lib/apt/lists/*")))
+
+}}{{
+removeCmd}}{{ARGS["pkg-mgr-opts"]}} \{{
+for index, pkg in ARGS["pkgs"]:
+    {{pkg}} \}}{{
+if !no-clean:
+&& {{cleanCmd}}}}

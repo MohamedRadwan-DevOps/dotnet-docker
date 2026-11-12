@@ -1,23 +1,14 @@
-## Container sample: Run a simple application
+{{
+    _ ARGS:
+      top-header: The string to use as the top-level header.
+      readme-host: Moniker of the site that will host the readme ^
+    set templateQualifier to when(IS_PRODUCT_FAMILY,
+        "samples",
+        when(PARENT_REPO = "monitor", cat("monitor-", SHORT_REPO), SHORT_REPO))
+}}{{ARGS["top-header"]}} Usage
 
-You can quickly run a container with a pre-built [.NET Docker image](https://hub.docker.com/_/microsoft-dotnet-core-samples/), based on the [.NET console sample](https://github.com/dotnet/dotnet-docker/blob/master/samples/dotnetapp/README.md).
+The [.NET Docker samples](https://github.com/dotnet/dotnet-docker/blob/main/samples/README.md) show various ways to use .NET and Docker together. See [Introduction to .NET and Docker](https://learn.microsoft.com/dotnet/core/docker/introduction){{
+    if templateQualifier = "aspnet" || templateQualifier = "runtime-deps": and [Host ASP.NET Core in Docker containers](https://learn.microsoft.com/aspnet/core/host-and-deploy/docker)}} to learn more.
 
-Type the following command to run a sample console application:
-
-```console
-docker run --rm mcr.microsoft.com/dotnet/core/samples
-```
-
-## Container sample: Run a web application
-
-You can quickly run a container with a pre-built [.NET Docker image](https://hub.docker.com/_/microsoft-dotnet-core-samples/), based on the [ASP.NET Core sample](https://github.com/dotnet/dotnet-docker/blob/master/samples/aspnetapp/README.md).
-
-Type the following command to run a sample web application:
-
-```console
-docker run -it --rm -p 8000:80 --name aspnetcore_sample mcr.microsoft.com/dotnet/core/samples:aspnetapp
-```
-
-After the application starts, navigate to `http://localhost:8000` in your web browser.
-
-See [Hosting ASP.NET Core Images with Docker over HTTPS](https://github.com/dotnet/dotnet-docker/blob/master/samples/host-aspnetcore-https.md) to use HTTPS with this image.
+{{InsertTemplate(join(["Use", templateQualifier, "md"], "."),
+  [ "top-header": ARGS["top-header"], "readme-host": ARGS["readme-host"]])}}
